@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+package jungi.mobilus_gtw_client.proto;
+option optimize_for = LITE_RUNTIME;
+
+message DeviceSettingsResponse {
+  optional int32 operation_status = 1;
+  optional double latitude = 2;
+  optional double longitude = 3;
+  optional bool remote_access_state = 4;
+  optional int64 current_time = 5;
+  optional string ethernet_ip = 6;
+  optional string wifi_ip = 7;
+  optional string ethernet_mac = 8;
+  optional string wifi_mac = 9;
+  optional int64 sunrise_time = 10;
+  optional int64 sunset_time = 11;
+  optional string remote_access_connection = 12;
+  optional string current_firmware_version = 13;
+  optional string latest_firmware_version = 14;
+  optional string email_address = 15;
+  optional bool marketing_materials = 16;
+}

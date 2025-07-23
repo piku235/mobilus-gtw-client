@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+package jungi.mobilus_gtw_client.proto;
+option optimize_for = LITE_RUNTIME;
+
+message Device {
+  optional int64 id = 1;
+  optional string name = 2;
+  optional int32 type = 3;
+  optional int32 icon = 4;
+  optional int64 inserttime = 5;
+  optional bool favourite = 6;
+  optional int64 assigned_place_ids = 7;
+  repeated int64 assigned_group_ids = 8;
+}

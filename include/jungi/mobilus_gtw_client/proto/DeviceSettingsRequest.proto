@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package jungi.mobilus_gtw_client.proto;
+option optimize_for = LITE_RUNTIME;
+
+message DeviceSettingsRequest {
+  optional int32 action = 1;
+  optional double latitude = 2;
+  optional double longitude = 3;
+  optional bool remote_access_state = 4;
+  optional int64 new_time = 5;
+  optional string email_address = 6;
+  optional bool marketing_materials = 7;
+}

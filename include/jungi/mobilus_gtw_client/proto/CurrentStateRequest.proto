@@ -1,0 +1,6 @@
+syntax = "proto2";
+
+package jungi.mobilus_gtw_client.proto;
+option optimize_for = LITE_RUNTIME;
+
+message CurrentStateRequest {}

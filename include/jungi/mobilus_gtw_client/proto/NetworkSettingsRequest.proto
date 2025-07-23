@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package jungi.mobilus_gtw_client.proto;
+option optimize_for = LITE_RUNTIME;
+
+message NetworkSettingsRequest {
+  optional int32 action = 1;
+  optional bool ethernet_state = 2;
+  optional int32 wifi_mode = 3;
+  optional string wifi_net_name = 4;
+  optional string wifi_net_password = 5;
+}
