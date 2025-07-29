@@ -1,7 +1,7 @@
 # C++ Client Library for Mobilus Cosmo GTW
 
 A lightweight, platform-agnostic C++ client library for interacting with the **Mobilus Cosmo GTW**.
-Designed to facilitate communication, control, and status monitoring of Mobilus devices connected to the Cosmo GTW.
+Designed to facilitate communication, control, and event subscription of Mobilus devices connected to the Cosmo GTW.
 
 ## Overview
 
@@ -19,6 +19,7 @@ Use this client to:
 - Mobilus Cosmo GTW firmware version >= 0.1.7.8
 - OpenSSL library
 - Mosquitto library
+- Google Protocol Buffers (protobuf) v2.6.1 (included)
 
 ## Limitations
 
@@ -40,7 +41,7 @@ cmake --build .
 ## mobcli
 
 This library includes the **mobcli** tool — a command-line client for interacting with the Mobilus Cosmo GTW device.
-See the [mobcli](tools/mobcli/README.md) for more details about the command-line client.
+See the [mobcli](tools/mobcli) for more details about the command-line client.
 
 ## Basic usage
 
@@ -52,8 +53,13 @@ See the [mobcli](tools/mobcli/README.md) for more details about the command-line
 using namespace jungi::mobilus_gtw_client;
 
 int main() {
-    // host, port, username, password, CA file
-    auto client = MqttMobilusGtwClient::with({ "192.168.1.1", 8883, "admin", "admin", "/certs/mobilelabs_mobilus_ca.crt" });
+    auto client = MqttMobilusGtwClient::with({
+        "192.168.1.1", // host
+        8883,          // port
+        "admin",       // username
+        "admin",       // password
+        "/certs/mobilelabs_mobilus_ca.crt" // CA file
+    });
     
      // connect to MQTT broker and authenticate with Cosmo GTW
     if (!client.connect()) {
