@@ -21,24 +21,6 @@ static void handleSignal(int signal)
     }
 }
 
-static void printCallEvents(const proto::CallEvents& callEvents)
-{
-    std::cout << std::endl;
-    std::cout << "CALL EVENTS" << std::endl;
-
-    for (int i = 0; i < callEvents.events_size(); i++) {
-        auto& event = callEvents.events(i);
-
-        std::cout << "------" << std::endl
-                  << "id: " << (event.has_id() ? event.id() : -1) << std::endl
-                  << "device_id: " << (event.has_device_id() ? event.device_id() : -1) << std::endl
-                  << "event_number: " << (event.has_event_number() ? event.event_number() : -1) << std::endl
-                  << "value(" << event.value().length() << "): " << event.value() << std::endl
-                  << "platform: " << (event.has_platform() ? event.platform() : -1) << std::endl
-                  << "user: " << (event.has_user() ? event.user() : -1) << std::endl;
-    }
-}
-
 namespace mobcli::commands {
 
 SubscribeCommand::SubscribeCommand()
@@ -73,6 +55,24 @@ int SubscribeCommand::execute(int argc, char* argv[])
     clientWatcher.loop();
 
     return 0;
+}
+
+void SubscribeCommand::printCallEvents(const proto::CallEvents& callEvents)
+{
+    std::cout << std::endl;
+    std::cout << "CALL EVENTS" << std::endl;
+
+    for (int i = 0; i < callEvents.events_size(); i++) {
+        auto& event = callEvents.events(i);
+
+        std::cout << "------" << std::endl
+                  << "id: " << (event.has_id() ? event.id() : -1) << std::endl
+                  << "device_id: " << (event.has_device_id() ? event.device_id() : -1) << std::endl
+                  << "event_number: " << (event.has_event_number() ? event.event_number() : -1) << std::endl
+                  << "value(" << event.value().length() << "): " << event.value() << std::endl
+                  << "platform: " << (event.has_platform() ? event.platform() : -1) << std::endl
+                  << "user: " << (event.has_user() ? event.user() : -1) << std::endl;
+    }
 }
 
 }

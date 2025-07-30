@@ -16,6 +16,8 @@ public:
 
 private:
     cxxopts::Options mOpts;
+
+    std::string bin2hex(const std::vector<uint8_t>& bytes);
 };
 
 }

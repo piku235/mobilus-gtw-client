@@ -7,26 +7,6 @@
 
 using namespace jungi::mobilus_gtw_client;
 
-template <typename T>
-static std::string formatList(const google::protobuf::RepeatedField<T>& repeatedField)
-{
-    std::ostringstream oss;
-
-    oss << "[";
-
-    for (int i = 0; i < repeatedField.size(); i++) {
-        oss << repeatedField.Get(i);
-
-        if (i != repeatedField.size() - 1) {
-            oss << ", ";
-        }
-    }
-
-    oss << "]";
-
-    return oss.str();
-}
-
 namespace mobcli::commands {
 
 DeviceListCommand::DeviceListCommand()
@@ -73,6 +53,26 @@ int DeviceListCommand::execute(int argc, char* argv[])
     }
 
     return 0;
+}
+
+template <typename T>
+std::string DeviceListCommand::formatList(const google::protobuf::RepeatedField<T>& repeatedField)
+{
+    std::ostringstream oss;
+
+    oss << "[";
+
+    for (int i = 0; i < repeatedField.size(); i++) {
+        oss << repeatedField.Get(i);
+
+        if (i != repeatedField.size() - 1) {
+            oss << ", ";
+        }
+    }
+
+    oss << "]";
+
+    return oss.str();
 }
 
 }

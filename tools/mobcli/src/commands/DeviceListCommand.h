@@ -2,6 +2,7 @@
 
 #include "CommonCommand.h"
 
+#include <google/protobuf/repeated_field.h>
 #include <cxxopts.hpp>
 
 namespace mobcli::commands {
@@ -16,6 +17,9 @@ public:
 
 private:
     cxxopts::Options mOpts;
+
+    template <typename T>
+    std::string formatList(const google::protobuf::RepeatedField<T>& repeatedField);
 };
 
 }

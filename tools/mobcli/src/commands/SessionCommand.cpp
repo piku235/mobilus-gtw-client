@@ -8,17 +8,6 @@
 
 using namespace jungi::mobilus_gtw_client;
 
-static std::string bin2hex(const std::vector<uint8_t>& bytes)
-{
-    std::ostringstream oss;
-
-    for (size_t i = 0; i < bytes.size(); i++) {
-        oss << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(bytes[i]);
-    }
-
-    return oss.str();
-}
-
 namespace mobcli::commands {
 
 SessionCommand::SessionCommand()
@@ -49,6 +38,17 @@ int SessionCommand::execute(int argc, char* argv[])
               << "serial_number: " << client->sessionInfo()->serialNumber << std::endl;
 
     return 0;
+}
+
+std::string SessionCommand::bin2hex(const std::vector<uint8_t>& bytes)
+{
+    std::ostringstream oss;
+
+    for (size_t i = 0; i < bytes.size(); i++) {
+        oss << std::setw(2) << std::setfill('0') << std::hex << static_cast<int>(bytes[i]);
+    }
+
+    return oss.str();
 }
 
 }
