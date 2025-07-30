@@ -5,8 +5,21 @@
 #include "jungi/mobilus_gtw_client/proto/DeviceSettingsRequest.pb.h"
 
 #include <iostream>
+#include <csignal>
 
 using namespace jungi::mobilus_gtw_client;
+
+static MqttMobilusGtwClient* sMobilusGtwClient = nullptr;
+
+static void handleSignal(int signal)
+{
+    if (nullptr != sMobilusGtwClient) {
+        sMobilusGtwClient->disconnect();
+        sMobilusGtwClient = nullptr;
+
+        std::cout << "disconnected" << std::endl;
+    }
+}
 
 static void printCallEvents(const proto::CallEvents& callEvents)
 {
@@ -49,6 +62,10 @@ int SubscribeCommand::execute(int argc, char* argv[])
     if (!client) {
         return 1;
     }
+
+    sMobilusGtwClient = client.get();
+    signal(SIGINT, handleSignal);
+    signal(SIGTERM, handleSignal);
 
     client->messageBus().subscribe<proto::CallEvents>(MessageType::CallEvents, printCallEvents);
 
