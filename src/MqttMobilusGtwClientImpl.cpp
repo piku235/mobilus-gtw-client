@@ -52,7 +52,7 @@ bool MqttMobilusGtwClientImpl::connect()
     mConnected = true;
     mConfig.clientWatcher->watchSocket(this, mosquitto_socket(mMosq));
 
-    MosquittoCondition cond(mMosq);
+    SelectCondition cond(*this, mosquitto_socket(mMosq));
     ConnectCallbackContext connCallbackData = { cond };
 
     mosquitto_user_data_set(mMosq, &connCallbackData);
@@ -133,7 +133,7 @@ bool MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& 
         return false;
     }
 
-    MosquittoCondition cond(mMosq);
+    SelectCondition cond(*this, mosquitto_socket(mMosq));
     ExpectedMessage expectedMessage = {
         .cond = cond,
         .expectedMessageType = ProtoUtils::messageTypeFor(response),

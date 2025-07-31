@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ExponentialBackoff.h"
-#include "MosquittoCondition.h"
+#include "SelectCondition.h"
 #include "crypto/Encryptor.h"
 #include "jungi/mobilus_gtw_client/ClientId.h"
 #include "jungi/mobilus_gtw_client/Envelope.h"
@@ -60,12 +60,12 @@ private:
     };
 
     struct ConnectCallbackContext {
-        MosquittoCondition& cond;
+        SelectCondition& cond;
         int reasonCode;
     };
 
     struct ExpectedMessage {
-        MosquittoCondition& cond;
+        SelectCondition& cond;
         uint8_t expectedMessageType;
         google::protobuf::MessageLite& expectedMessage;
         uint8_t responseStatus = 0xFF;

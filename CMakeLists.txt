@@ -22,7 +22,7 @@ add_library(mobilus_gtw_client
   src/ProtoUtils.cpp
   src/ClientId.cpp
   src/Envelope.cpp
-  src/MosquittoCondition.cpp
+  src/SelectCondition.cpp
   src/MqttMobilusGtwClient.cpp
   src/MqttMobilusGtwClientImpl.cpp
 )
