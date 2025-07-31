@@ -81,12 +81,14 @@ private:
     std::optional<SessionInformation> mSessionInfo;
     ExpectedMessage* mExpectedMessage = nullptr;
     std::chrono::steady_clock::time_point mLastActivity;
+    bool mConnected = false;
     bool mReconnecting = false;
     ExponentialBackoff mReconnectDelay = { std::chrono::seconds(1), std::chrono::minutes(2) };
 
     static void onConnectCallback(mosquitto* mosq, void* obj, int reasonCode);
     static void onMessageCallback(mosquitto* mosq, void* obj, const mosquitto_message* mosqMessage);
 
+    int connectMqtt();
     void reconnect();
     bool login();
     void onMessage(const mosquitto_message* mosqMessage);

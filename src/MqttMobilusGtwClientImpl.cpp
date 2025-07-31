@@ -10,6 +10,7 @@
 #include "jungi/mobilus_gtw_client/proto/LoginRequest.pb.h"
 #include "jungi/mobilus_gtw_client/proto/LoginResponse.pb.h"
 
+#include <cerrno>
 #include <ctime>
 #include <utility>
 
@@ -31,33 +32,25 @@ MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(Config config)
 MqttMobilusGtwClientImpl::~MqttMobilusGtwClientImpl()
 {
     disconnect();
+
+    if (nullptr != mMosq) {
+        mosquitto_destroy(mMosq);
+        mMosq = nullptr;
+    }
 }
 
 bool MqttMobilusGtwClientImpl::connect()
 {
-    if (mMosq) {
+    if (mConnected) {
         return true;
     }
 
-    mMosq = mosquitto_new(mClientId.toHex().c_str(), true, nullptr);
-
-    if (!mMosq) {
+    if (MOSQ_ERR_SUCCESS != connectMqtt()) {
         return false;
     }
 
-    if (mConfig.cafile) {
-        mosquitto_tls_set(mMosq, mConfig.cafile->c_str(), nullptr, nullptr, nullptr, nullptr);
-        mosquitto_tls_insecure_set(mMosq, true);
-    }
-
-    mosquitto_connect_callback_set(mMosq, onConnectCallback);
-
-    if (MOSQ_ERR_SUCCESS != mosquitto_connect(mMosq, mConfig.host.c_str(), mConfig.port, kKeepAliveIntervalSecs)) {
-        mosquitto_destroy(mMosq);
-        mMosq = nullptr;
-
-        return false;
-    }
+    mConnected = true;
+    mConfig.clientWatcher->watchSocket(this, mosquitto_socket(mMosq));
 
     MosquittoCondition cond(mMosq);
     ConnectCallbackContext connCallbackData = { cond };
@@ -67,9 +60,6 @@ bool MqttMobilusGtwClientImpl::connect()
     cond.wait();
 
     if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
-        mosquitto_destroy(mMosq);
-        mMosq = nullptr;
-
         return false;
     }
 
@@ -78,50 +68,41 @@ bool MqttMobilusGtwClientImpl::connect()
 
     if (MOSQ_ERR_SUCCESS != mosquitto_subscribe(mMosq, nullptr, mClientId.toHex().c_str(), 0)) {
         mosquitto_disconnect(mMosq);
-        mosquitto_destroy(mMosq);
-        mMosq = nullptr;
-
+        mConnected = false;
         return false;
     }
 
     if (MOSQ_ERR_SUCCESS != mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0)) {
         mosquitto_disconnect(mMosq);
-        mosquitto_destroy(mMosq);
-        mMosq = nullptr;
-
+        mConnected = false;
         return false;
     }
 
     if (!login()) {
         mosquitto_disconnect(mMosq);
-        mosquitto_destroy(mMosq);
-        mMosq = nullptr;
-
+        mConnected = false;
         return false;
     }
-
-    mConfig.clientWatcher->watchSocket(this, mosquitto_socket(mMosq));
 
     return true;
 }
 
 void MqttMobilusGtwClientImpl::disconnect()
 {
-    if (mMosq) {
+    clearSession();
+
+    if (mConnected) {
         mConfig.clientWatcher->unwatchSocket(this, mosquitto_socket(mMosq));
         mConfig.clientWatcher->unwatchTimer(this);
 
         mosquitto_disconnect(mMosq);
-        mosquitto_destroy(mMosq);
-        mMosq = nullptr;
+        mConnected = false;
     }
-
-    clearSession();
 }
 
 bool MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
 {
-    if (!mMosq) {
+    if (!mConnected) {
         return false;
     }
 
@@ -181,7 +162,7 @@ bool MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& 
 
 io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
 {
-    if (!mMosq) {
+    if (!mConnected) {
         return {};
     }
 
@@ -197,7 +178,7 @@ io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
 
 void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
 {
-    if (!mMosq) {
+    if (!mConnected) {
         return;
     }
 
@@ -227,7 +208,7 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
 
 void MqttMobilusGtwClientImpl::handleTimerEvent()
 {
-    if (!mMosq) {
+    if (!mConnected) {
         reconnect();
         return;
     }
@@ -412,18 +393,49 @@ void MqttMobilusGtwClientImpl::handleBadMessage(const Envelope& envelope)
 
 void MqttMobilusGtwClientImpl::handleLostConnection()
 {
-    if (mReconnecting || !mMosq) {
+    if (mReconnecting) {
         return;
     }
 
     mConfig.clientWatcher->unwatchSocket(this, mosquitto_socket(mMosq));
     mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
 
+    mConnected = false;
     mReconnecting = true;
-    mosquitto_destroy(mMosq);
-    mMosq = nullptr;
-
     clearSession();
+}
+
+int MqttMobilusGtwClientImpl::connectMqtt()
+{
+    if (nullptr != mMosq) {
+        return mosquitto_reconnect(mMosq);
+    }
+
+    mMosq = mosquitto_new(mClientId.toHex().c_str(), true, nullptr);
+
+    if (nullptr == mMosq) {
+        return errno;
+    }
+
+    int rc;
+
+    if (mConfig.cafile) {
+        rc = mosquitto_tls_set(mMosq, mConfig.cafile->c_str(), nullptr, nullptr, nullptr, nullptr);
+        if (MOSQ_ERR_SUCCESS != rc) {
+            return rc;
+        }
+
+        rc = mosquitto_tls_insecure_set(mMosq, true);
+        if (MOSQ_ERR_SUCCESS != rc) {
+            return rc;
+        }
+    }
+
+    mosquitto_connect_callback_set(mMosq, onConnectCallback);
+
+    rc = mosquitto_connect(mMosq, mConfig.host.c_str(), mConfig.port, kKeepAliveIntervalSecs);
+
+    return rc;
 }
 
 void MqttMobilusGtwClientImpl::reconnect()
