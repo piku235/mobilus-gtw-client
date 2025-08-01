@@ -38,6 +38,15 @@ target_link_libraries(mobilus_gtw_client
     crypto
 )
 
+target_compile_options(mobilus_gtw_client
+  PRIVATE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wconversion
+    -Wsign-conversion
+)
+
 target_include_directories(mobilus_gtw_client
   PUBLIC
     include

@@ -53,7 +53,7 @@ bool MqttMobilusGtwClientImpl::connect()
     mConfig.clientWatcher->watchSocket(this, mosquitto_socket(mMosq));
 
     SelectCondition cond(*this, mosquitto_socket(mMosq));
-    ConnectCallbackContext connCallbackData = { cond };
+    ConnectCallbackContext connCallbackData = { cond, -1 };
 
     mosquitto_user_data_set(mMosq, &connCallbackData);
 
@@ -134,11 +134,7 @@ bool MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& 
     }
 
     SelectCondition cond(*this, mosquitto_socket(mMosq));
-    ExpectedMessage expectedMessage = {
-        .cond = cond,
-        .expectedMessageType = ProtoUtils::messageTypeFor(response),
-        .expectedMessage = response,
-    };
+    ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response };
     mExpectedMessage = &expectedMessage;
 
     cond.wait();
@@ -223,7 +219,7 @@ void MqttMobilusGtwClientImpl::handleTimerEvent()
     noteLastActivity();
 }
 
-void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto* mosq, void* obj, int reasonCode)
+void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto*, void* obj, int reasonCode)
 {
     auto ctx = reinterpret_cast<ConnectCallbackContext*>(obj);
 
@@ -235,7 +231,7 @@ void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto* mosq, void* obj, int
     ctx->cond.notify();
 }
 
-void MqttMobilusGtwClientImpl::onMessageCallback(mosquitto* mosq, void* obj, const mosquitto_message* mosqMessage)
+void MqttMobilusGtwClientImpl::onMessageCallback(mosquitto*, void* obj, const mosquitto_message* mosqMessage)
 {
     auto self = reinterpret_cast<MqttMobilusGtwClientImpl*>(obj);
 
@@ -271,11 +267,11 @@ bool MqttMobilusGtwClientImpl::login()
     mPublicEncryptor = encryptorFor(publicKey);
     mPrivateEncryptor = encryptorFor(privateKey);
     mSessionInfo = {
-        .userId = response.user_id(),
-        .admin = response.admin(),
-        .publicKey = std::move(publicKey),
-        .privateKey = std::move(privateKey),
-        .serialNumber = response.serial_number(),
+        response.user_id(),
+        response.admin(),
+        std::move(publicKey),
+        std::move(privateKey),
+        response.serial_number(),
     };
 
     return true;
@@ -298,7 +294,7 @@ void MqttMobilusGtwClientImpl::onMessage(const mosquitto_message* mosqMessage)
 
 void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMessage)
 {
-    auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), mosqMessage->payloadlen);
+    auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
 
     mConfig.onRawMessage(envelope);
 
@@ -328,7 +324,7 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
 void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage)
 {
     auto& cond = expectedMessage.cond;
-    auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), mosqMessage->payloadlen);
+    auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
 
     mConfig.onRawMessage(envelope);
 
@@ -433,7 +429,7 @@ int MqttMobilusGtwClientImpl::connectMqtt()
 
     mosquitto_connect_callback_set(mMosq, onConnectCallback);
 
-    rc = mosquitto_connect(mMosq, mConfig.host.c_str(), mConfig.port, kKeepAliveIntervalSecs);
+    rc = mosquitto_connect(mMosq, mConfig.host.c_str(), static_cast<int>(mConfig.port), kKeepAliveIntervalSecs);
 
     return rc;
 }
@@ -490,16 +486,16 @@ Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLi
 {
     std::vector<uint8_t> messageBody;
 
-    messageBody.resize(message.ByteSize());
+    messageBody.resize(static_cast<size_t>(message.ByteSize()));
     message.SerializeToArray(messageBody.data(), message.ByteSize());
 
     return {
-        .messageType = ProtoUtils::messageTypeFor(message),
-        .timestamp = static_cast<uint32_t>(time(nullptr)),
-        .clientId = mClientId,
-        .platform = Platform::Web,
-        .responseStatus = 0,
-        .messageBody = messageBody,
+        ProtoUtils::messageTypeFor(message),
+        static_cast<uint32_t>(time(nullptr)),
+        mClientId,
+        Platform::Web,
+        0,
+        messageBody,
     };
 }
 

@@ -10,8 +10,8 @@ using std::chrono::steady_clock;
 static timeval convertToTimeval(std::chrono::milliseconds ms)
 {
     return {
-        .tv_sec = static_cast<time_t>(ms.count() / 1000),
-        .tv_usec = static_cast<suseconds_t>((ms.count() % 1000) * 1000)
+        static_cast<time_t>(ms.count() / 1000),
+        static_cast<suseconds_t>((ms.count() % 1000) * 1000)
     };
 }
 
@@ -101,7 +101,7 @@ void BlockingClientWatcher::watchSocket(SocketEventHandler* handler, int socketF
     mSocketFd = socketFd;
 }
     
-void BlockingClientWatcher::unwatchSocket(SocketEventHandler* handler, int socketFd)
+void BlockingClientWatcher::unwatchSocket(SocketEventHandler* handler, int)
 {
     if (mSocketEventHandler != handler) {
         return;

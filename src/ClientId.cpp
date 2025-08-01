@@ -7,7 +7,7 @@ namespace jungi::mobilus_gtw_client {
 
 ClientId ClientId::unique()
 {
-    ClientId clientId;
+    ClientId clientId {};
 
     RAND_bytes(clientId.mValue, clientId.size());
 

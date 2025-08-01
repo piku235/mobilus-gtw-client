@@ -19,7 +19,7 @@ void SelectCondition::notify()
 
 void SelectCondition::wait()
 {
-    timeval timeout = { .tv_sec = kWaitTimeSecs };
+    timeval timeout = { kWaitTimeSecs, 0 };
 
     fd_set readFds;
     fd_set writeFds;

@@ -21,7 +21,7 @@ struct Envelope {
     std::vector<uint8_t> messageBody;
 
     uint32_t size() const;
-    static Envelope deserialize(const uint8_t* payload, size_t size);
+    static Envelope deserialize(const uint8_t* payload, uint32_t size);
     std::vector<uint8_t> serialize() const;
 };
 
