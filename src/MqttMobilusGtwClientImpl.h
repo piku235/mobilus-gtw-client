@@ -80,7 +80,6 @@ private:
     std::unique_ptr<crypto::Encryptor> mPrivateEncryptor;
     std::optional<SessionInformation> mSessionInfo;
     ExpectedMessage* mExpectedMessage = nullptr;
-    std::chrono::steady_clock::time_point mLastActivity;
     bool mConnected = false;
     bool mReconnecting = false;
     ExponentialBackoff mReconnectDelay = { std::chrono::seconds(1), std::chrono::minutes(2) };
@@ -99,8 +98,7 @@ private:
     void handleLostConnection();
     void processQueuedMessages();
     void clearSession();
-    void bumpLastActivity();
-    std::chrono::milliseconds keepAliveTimerDelay();
+    void noteLastActivity();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     std::unique_ptr<crypto::Encryptor> encryptorFor(crypto::bytes key);
 };

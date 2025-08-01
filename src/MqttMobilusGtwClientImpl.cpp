@@ -122,7 +122,7 @@ bool MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message
         return false;
     }
 
-    bumpLastActivity();
+    noteLastActivity();
 
     return true;
 }
@@ -190,7 +190,7 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
             return;
         }
 
-        bumpLastActivity();
+        noteLastActivity();
         processQueuedMessages();
     }
 
@@ -202,7 +202,7 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
             return;
         }
 
-        bumpLastActivity();
+        noteLastActivity();
     }
 }
 
@@ -220,7 +220,7 @@ void MqttMobilusGtwClientImpl::handleTimerEvent()
         return;
     }
 
-    bumpLastActivity();
+    noteLastActivity();
 }
 
 void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto* mosq, void* obj, int reasonCode)
@@ -481,20 +481,9 @@ void MqttMobilusGtwClientImpl::clearSession()
     mSessionInfo.reset();
 }
 
-void MqttMobilusGtwClientImpl::bumpLastActivity()
+void MqttMobilusGtwClientImpl::noteLastActivity()
 {
-    mLastActivity = steady_clock::now();
-    mConfig.clientWatcher->watchTimer(this, keepAliveTimerDelay());
-}
-
-std::chrono::milliseconds MqttMobilusGtwClientImpl::keepAliveTimerDelay()
-{
-    std::chrono::seconds keepAliveInterval(kKeepAliveIntervalSecs);
-    std::chrono::seconds threshold(1); // safety threshold against infinite loops
-
-    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(keepAliveInterval + mLastActivity - steady_clock::now());
-
-    return diff > threshold ? diff : threshold;
+    mConfig.clientWatcher->watchTimer(this, std::chrono::seconds(kKeepAliveIntervalSecs));
 }
 
 Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLite& message)
