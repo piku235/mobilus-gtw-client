@@ -16,6 +16,17 @@ add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
 add_subdirectory(tools/mobcli)
 
+add_library(common_compiler_warnings INTERFACE)
+
+target_compile_options(common_compiler_warnings
+  INTERFACE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wconversion
+    -Wsign-conversion
+)
+
 add_library(mobilus_gtw_client
   src/io/BlockingClientWatcher.cpp
   src/ExponentialBackoff.cpp
@@ -33,18 +44,10 @@ target_link_libraries(mobilus_gtw_client
   PUBLIC
     protos
   PRIVATE
+    common_compiler_warnings
     OpenSSL::Crypto
     PkgConfig::MOSQUITTO
     crypto
-)
-
-target_compile_options(mobilus_gtw_client
-  PRIVATE
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Wconversion
-    -Wsign-conversion
 )
 
 target_include_directories(mobilus_gtw_client

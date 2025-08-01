@@ -12,7 +12,7 @@ Aes256Encryptor::Aes256Encryptor(bytes key)
 
 bytes Aes256Encryptor::encrypt(const bytes& plaintext, const bytes& iv) const
 {
-    bytes ciphertext(plaintext.size() + EVP_CIPHER_block_size(kCipher));
+    bytes ciphertext(plaintext.size() + static_cast<std::size_t>(EVP_CIPHER_block_size(kCipher)));
     int len, totalLen;
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -20,7 +20,7 @@ bytes Aes256Encryptor::encrypt(const bytes& plaintext, const bytes& iv) const
     EVP_EncryptInit_ex(ctx, kCipher, nullptr, mKey.data(), iv.data());
     EVP_CIPHER_CTX_set_padding(ctx, 0);
 
-    EVP_EncryptUpdate(ctx, ciphertext.data(), &len, reinterpret_cast<const uint8_t*>(plaintext.data()), plaintext.size());
+    EVP_EncryptUpdate(ctx, ciphertext.data(), &len, reinterpret_cast<const uint8_t*>(plaintext.data()), static_cast<int>(plaintext.size()));
     totalLen = len;
 
     EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len);
@@ -28,14 +28,14 @@ bytes Aes256Encryptor::encrypt(const bytes& plaintext, const bytes& iv) const
 
     EVP_CIPHER_CTX_free(ctx);
 
-    ciphertext.resize(totalLen);
+    ciphertext.resize(static_cast<size_t>(totalLen));
 
     return ciphertext;
 }
 
 bytes Aes256Encryptor::decrypt(const bytes& ciphertext, const bytes& iv) const
 {
-    bytes plaintext(ciphertext.size() + EVP_CIPHER_block_size(kCipher), '\0');
+    bytes plaintext(ciphertext.size() + static_cast<std::size_t>(EVP_CIPHER_block_size(kCipher)), '\0');
     int len, totalLen;
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
@@ -43,7 +43,7 @@ bytes Aes256Encryptor::decrypt(const bytes& ciphertext, const bytes& iv) const
     EVP_DecryptInit_ex(ctx, kCipher, nullptr, mKey.data(), iv.data());
     EVP_CIPHER_CTX_set_padding(ctx, 0);
 
-    EVP_DecryptUpdate(ctx, reinterpret_cast<uint8_t*>(plaintext.data()), &len, reinterpret_cast<const uint8_t*>(ciphertext.data()), ciphertext.size());
+    EVP_DecryptUpdate(ctx, reinterpret_cast<uint8_t*>(plaintext.data()), &len, reinterpret_cast<const uint8_t*>(ciphertext.data()), static_cast<int>(ciphertext.size()));
     totalLen = len;
 
     EVP_DecryptFinal_ex(ctx, reinterpret_cast<uint8_t*>(plaintext.data() + len), &len);
@@ -51,7 +51,7 @@ bytes Aes256Encryptor::decrypt(const bytes& ciphertext, const bytes& iv) const
 
     EVP_CIPHER_CTX_free(ctx);
 
-    plaintext.resize(totalLen);
+    plaintext.resize(static_cast<size_t>(totalLen));
 
     return plaintext;
 }

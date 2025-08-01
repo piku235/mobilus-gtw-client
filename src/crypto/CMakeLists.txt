@@ -6,4 +6,8 @@ add_library(crypto OBJECT
   utils.cpp
 )
 
-target_link_libraries(crypto PRIVATE OpenSSL::Crypto)
+target_link_libraries(crypto 
+  PRIVATE
+    common_compiler_warnings
+    OpenSSL::Crypto
+)
