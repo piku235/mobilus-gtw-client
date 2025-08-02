@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
+option(BUILD_MOBCLI "Build mobcli tool" OFF)
 
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
@@ -14,7 +15,10 @@ pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
-add_subdirectory(tools/mobcli)
+
+if(BUILD_MOBCLI)
+  add_subdirectory(tools/mobcli)
+endif()
 
 add_library(common_compiler_warnings INTERFACE)
 
