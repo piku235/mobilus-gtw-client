@@ -84,6 +84,8 @@ bool MqttMobilusGtwClientImpl::connect()
         return false;
     }
 
+    scheduleTimer();
+
     return true;
 }
 
@@ -121,8 +123,6 @@ bool MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message
     if (MOSQ_ERR_SUCCESS != mosquitto_publish(mMosq, nullptr, kRequestsTopic, static_cast<int>(payload.size()), payload.data(), 0, false)) {
         return false;
     }
-
-    noteLastActivity();
 
     return true;
 }
@@ -185,8 +185,6 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
             handleLostConnection();
             return;
         }
-
-        noteLastActivity();
         processQueuedMessages();
     }
 
@@ -197,8 +195,6 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
             handleLostConnection();
             return;
         }
-
-        noteLastActivity();
     }
 }
 
@@ -216,7 +212,7 @@ void MqttMobilusGtwClientImpl::handleTimerEvent()
         return;
     }
 
-    noteLastActivity();
+    scheduleTimer();
 }
 
 void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto*, void* obj, int reasonCode)
@@ -477,9 +473,9 @@ void MqttMobilusGtwClientImpl::clearSession()
     mSessionInfo.reset();
 }
 
-void MqttMobilusGtwClientImpl::noteLastActivity()
+void MqttMobilusGtwClientImpl::scheduleTimer()
 {
-    mConfig.clientWatcher->watchTimer(this, std::chrono::seconds(kKeepAliveIntervalSecs));
+    mConfig.clientWatcher->watchTimer(this, std::chrono::seconds(1)); // due to mosquitto_loop_misc() PINGREQ
 }
 
 Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLite& message)

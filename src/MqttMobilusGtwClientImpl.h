@@ -98,7 +98,7 @@ private:
     void handleLostConnection();
     void processQueuedMessages();
     void clearSession();
-    void noteLastActivity();
+    void scheduleTimer();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     std::unique_ptr<crypto::Encryptor> encryptorFor(crypto::bytes key);
 };
