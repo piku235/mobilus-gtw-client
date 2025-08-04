@@ -1,11 +1,11 @@
 #pragma once
 
-#include "CommonCommand.h"
+#include "ClientCommonCommand.h"
 #include <cxxopts.hpp>
 
 namespace mobcli::commands {
 
-class CallEventsCommand final : public CommonCommand {
+class CallEventsCommand final : public ClientCommonCommand {
 public:
     CallEventsCommand();
 

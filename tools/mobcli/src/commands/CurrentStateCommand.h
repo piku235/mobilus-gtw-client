@@ -1,13 +1,13 @@
 #pragma once
 
-#include "CommonCommand.h"
+#include "ClientCommonCommand.h"
 #include "jungi/mobilus_gtw_client/proto/Event.pb.h"
 
 #include <cxxopts.hpp>
 
 namespace mobcli::commands {
 
-class CurrentStateCommand final : public CommonCommand {
+class CurrentStateCommand final : public ClientCommonCommand {
 public:
     CurrentStateCommand();
 

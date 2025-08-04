@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CommonCommand.h"
+#include "ClientCommonCommand.h"
 
 #include <cxxopts.hpp>
 
@@ -10,7 +10,7 @@ namespace jungi::mobilus_gtw_client::proto {
 
 namespace mobcli::commands {
 
-class SubscribeCommand final : public CommonCommand {
+class SubscribeCommand final : public ClientCommonCommand {
 public:
     SubscribeCommand();
 

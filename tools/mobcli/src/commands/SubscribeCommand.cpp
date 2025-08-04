@@ -63,7 +63,6 @@ int SubscribeCommand::execute(int argc, char* argv[])
 
 void SubscribeCommand::printCallEvents(const proto::CallEvents& callEvents)
 {
-    std::cout << std::endl;
     std::cout << "CALL EVENTS" << std::endl;
 
     for (int i = 0; i < callEvents.events_size(); i++) {
@@ -77,6 +76,8 @@ void SubscribeCommand::printCallEvents(const proto::CallEvents& callEvents)
                   << "platform: " << (event.has_platform() ? event.platform() : -1) << std::endl
                   << "user: " << (event.has_user() ? event.user() : -1) << std::endl;
     }
+    
+    std::cout << std::endl;
 }
 
 }

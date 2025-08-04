@@ -1,12 +1,12 @@
 #pragma once
 
-#include "CommonCommand.h"
+#include "ClientCommonCommand.h"
 
 #include <cxxopts.hpp>
 
 namespace mobcli::commands {
 
-class SessionCommand final : public CommonCommand {
+class SessionCommand final : public ClientCommonCommand {
 public:
     SessionCommand();
 
@@ -16,8 +16,6 @@ public:
 
 private:
     cxxopts::Options mOpts;
-
-    std::string bin2hex(const std::vector<uint8_t>& bytes);
 };
 
 }

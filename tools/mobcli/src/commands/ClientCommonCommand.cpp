@@ -1,6 +1,6 @@
-#include "CommonCommand.h"
 #include "config.h"
-#include "jungi/mobilus_gtw_client/MqttMobilusGtwClient.h"
+#include "Utils.h"
+#include "ClientCommonCommand.h"
 #include "jungi/mobilus_gtw_client/proto/DeviceSettingsRequest.pb.h"
 
 #include <iostream>
@@ -11,7 +11,9 @@ static const size_t kMobilusMqttPort = 8883;
 
 static void printRawMessage(const Envelope& envelope)
 {
-    std::cout << "client_id: " << envelope.clientId.toHex() << std::endl
+    using namespace mobcli::Utils;
+
+    std::cout << "client_id: " << bin2hex(envelope.clientId) << std::endl
               << "message_size: " << envelope.size() << std::endl
               << "message_type: " << static_cast<int>(envelope.messageType) << std::endl
               << "message_body_length: " << envelope.messageBody.size() << std::endl
@@ -22,31 +24,20 @@ static void printRawMessage(const Envelope& envelope)
 
 namespace mobcli::commands {
 
-void CommonCommand::addGeneralOptions(cxxopts::Options& opts)
+void ClientCommonCommand::addGeneralOptions(cxxopts::Options& opts)
 {
     // clang-format off
     opts.add_options("General", {
-        {"h,host", "mobilus hostname/IP", cxxopts::value<std::string>()->default_value(getEnvOr("MOBILUS_HOST", ""))},
-        {"u,username", "mobilus username/login", cxxopts::value<std::string>()->default_value(getEnvOr("MOBILUS_USERNAME", "admin"))},
-        {"p,password", "mobilus password", cxxopts::value<std::string>()->default_value(getEnvOr("MOBILUS_PASSWORD", "admin"))},
+        {"h,host", "mobilus hostname/IP", cxxopts::value<std::string>()->default_value(Utils::getEnvOr("MOBILUS_HOST", ""))},
+        {"u,username", "mobilus username/login", cxxopts::value<std::string>()->default_value(Utils::getEnvOr("MOBILUS_USERNAME", "admin"))},
+        {"p,password", "mobilus password", cxxopts::value<std::string>()->default_value(Utils::getEnvOr("MOBILUS_PASSWORD", "admin"))},
         {"v,verbose", "prints extra logs", cxxopts::value<bool>()->default_value("false")},
         {"help", "prints help"}
     });
     // clang-format on
 }
 
-const char* CommonCommand::getEnvOr(const char* name, const char* defaultValue)
-{
-    auto value = getenv(name);
-
-    if (nullptr == value) {
-        return defaultValue;
-    }
-
-    return value;
-}
-
-std::unique_ptr<MqttMobilusGtwClient> CommonCommand::mqttMobilusGtwClient(cxxopts::ParseResult r, io::ClientWatcher* clientWatcher)
+std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(cxxopts::ParseResult r, io::ClientWatcher* clientWatcher)
 {
     MqttMobilusGtwClientConfig config(r["host"].as<std::string>(), kMobilusMqttPort, r["username"].as<std::string>(), r["password"].as<std::string>(), ::kMobilusCaFile);
     

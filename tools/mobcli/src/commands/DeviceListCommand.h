@@ -1,13 +1,13 @@
 #pragma once
 
-#include "CommonCommand.h"
+#include "ClientCommonCommand.h"
 
 #include <google/protobuf/repeated_field.h>
 #include <cxxopts.hpp>
 
 namespace mobcli::commands {
 
-class DeviceListCommand final : public CommonCommand {
+class DeviceListCommand final : public ClientCommonCommand {
 public:
     DeviceListCommand();
 

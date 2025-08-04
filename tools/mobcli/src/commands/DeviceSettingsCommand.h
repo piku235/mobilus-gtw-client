@@ -1,12 +1,12 @@
 #pragma once
 
-#include "CommonCommand.h"
+#include "ClientCommonCommand.h"
 
 #include <cxxopts.hpp>
 
 namespace mobcli::commands {
 
-class DeviceSettingsCommand final : public CommonCommand {
+class DeviceSettingsCommand final : public ClientCommonCommand {
 public:
     DeviceSettingsCommand();
 
