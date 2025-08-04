@@ -1,17 +1,18 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace jungi::mobilus_gtw_client {
 
 struct Error final {
 public:    
-    enum class Code {
-        AuthenticationFailed,
-        BadResponse,
-        Transport,
-        NoConnection,
-        Unknown,
+    enum class Code: uint8_t {
+        AuthenticationFailed = 0,
+        BadResponse = 1,
+        Transport = 2,
+        NoConnection = 3,
+        Unknown = 255,
     };
 
     const Code code;
