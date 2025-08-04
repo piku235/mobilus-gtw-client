@@ -38,7 +38,6 @@ public:
     void disconnect() override;
     bool send(const google::protobuf::MessageLite& message) override;
     bool sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response) override;
-    void loop();
 
     MessageBus& messageBus() override { return mMessageBus; }
     const std::optional<SessionInformation>& sessionInfo() const override { return mSessionInfo; }
