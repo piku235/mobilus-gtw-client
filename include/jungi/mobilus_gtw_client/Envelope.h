@@ -7,7 +7,7 @@
 
 namespace jungi::mobilus_gtw_client {
 
-struct Envelope {
+struct Envelope final {
     struct ResponseStatus {
         static constexpr uint8_t Success = 0;
         static constexpr uint8_t AuthenticationFailed = 1;
