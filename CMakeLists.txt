@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(mobilus_gtw_client)
+
+cmake_policy(SET CMP0135 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -11,6 +14,15 @@ option(BUILD_MOBCLI "Build mobcli tool" OFF)
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
+
+include(FetchContent)
+
+FetchContent_Declare(
+  tl-expected
+  GIT_REPOSITORY https://github.com/TartanLlama/expected.git
+  GIT_TAG v1.2.0
+)
+FetchContent_MakeAvailable(tl-expected)
 
 add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
@@ -59,4 +71,5 @@ target_include_directories(mobilus_gtw_client
     include
   PRIVATE
     src
+    ${tl-expected_SOURCE_DIR}/include
 )
