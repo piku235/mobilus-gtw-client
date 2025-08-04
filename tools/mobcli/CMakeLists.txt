@@ -1,6 +1,15 @@
 set(CMAKE_CXX_STANDARD 17)
 set(MOBILUS_CA_FILE "${PROJECT_SOURCE_DIR}/certs/mobilelabs_mobilus_ca.crt")
 
+include(FetchContent)
+
+FetchContent_Declare(
+  cxxopts
+  GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+  GIT_TAG v3.3.1
+)
+FetchContent_MakeAvailable(cxxopts)
+
 configure_file(
   include/config.h.in
   "${CMAKE_CURRENT_BINARY_DIR}/include/config.h"
@@ -24,6 +33,7 @@ target_include_directories(mobcli
   PRIVATE
     src
     include
+    ${cxxopts_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
