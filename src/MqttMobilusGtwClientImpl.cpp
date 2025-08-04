@@ -517,7 +517,7 @@ Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLi
     return {
         ProtoUtils::messageTypeFor(message),
         static_cast<uint32_t>(time(nullptr)),
-        mClientId,
+        mClientId.value(),
         Platform::Web,
         0,
         messageBody,

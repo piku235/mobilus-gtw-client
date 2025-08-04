@@ -1,9 +1,9 @@
 #pragma once
 
+#include "ClientId.h"
 #include "ExponentialBackoff.h"
 #include "SelectCondition.h"
 #include "crypto/Encryptor.h"
-#include "jungi/mobilus_gtw_client/ClientId.h"
 #include "jungi/mobilus_gtw_client/Envelope.h"
 #include "jungi/mobilus_gtw_client/MqttMobilusGtwClient.h"
 #include "jungi/mobilus_gtw_client/MqttMobilusGtwClientConfig.h"

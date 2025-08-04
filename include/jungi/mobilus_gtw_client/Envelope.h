@@ -1,8 +1,7 @@
 #pragma once
 
-#include "ClientId.h"
-
 #include <cstdint>
+#include <array>
 #include <vector>
 #include <optional>
 
@@ -16,7 +15,7 @@ struct Envelope {
 
     uint8_t messageType;
     uint32_t timestamp;
-    ClientId clientId;
+    std::array<uint8_t, 6> clientId;
     uint8_t platform;
     uint8_t responseStatus;
     std::vector<uint8_t> messageBody;

@@ -1,24 +1,41 @@
-#include "jungi/mobilus_gtw_client/ClientId.h"
+#include "ClientId.h"
 
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
+
+#include <tuple>
 
 namespace jungi::mobilus_gtw_client {
 
 ClientId ClientId::unique()
 {
-    ClientId clientId {};
+    ClientId::value_t value;
 
-    RAND_bytes(clientId.mValue, clientId.size());
+    RAND_bytes(value.data(), value.max_size());
 
-    return clientId;
+    return value;
+}
+
+ClientId ClientId::from(value_t value)
+{
+    return value;
+}
+
+ClientId::ClientId(value_t value)
+    : mValue(std::move(value))
+{
+}
+
+const ClientId::value_t& ClientId::value() const
+{
+    return mValue;
 }
 
 std::string ClientId::toHex() const
 {
-    char hexstr[2 * sizeof(mValue) + 1];
+    char hexstr[2 * std::tuple_size<value_t>::value + 1];
 
-    OPENSSL_buf2hexstr_ex(hexstr, sizeof(hexstr), nullptr, static_cast<const unsigned char*>(mValue), sizeof(mValue), '\0');
+    OPENSSL_buf2hexstr_ex(hexstr, sizeof(hexstr), nullptr, static_cast<const unsigned char*>(mValue.data()), mValue.size(), '\0');
 
     return hexstr;
 }
