@@ -15,7 +15,7 @@ class CommonCommand : public Command {
 protected:
     void addGeneralOptions(cxxopts::Options& opts);
     const char* getEnvOr(const char* name, const char* defaultValue);
-    std::unique_ptr<jungi::mobilus_gtw_client::MqttMobilusGtwClient> connectMobilus(cxxopts::ParseResult r, jungi::mobilus_gtw_client::io::ClientWatcher* clientWatcher = nullptr);
+    std::unique_ptr<jungi::mobilus_gtw_client::MqttMobilusGtwClient> mqttMobilusGtwClient(cxxopts::ParseResult r, jungi::mobilus_gtw_client::io::ClientWatcher* clientWatcher = nullptr);
 };
 
 }

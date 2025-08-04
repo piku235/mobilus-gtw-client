@@ -69,7 +69,7 @@ target_link_libraries(mobilus_gtw_client
 target_include_directories(mobilus_gtw_client
   PUBLIC
     include
+    ${tl-expected_SOURCE_DIR}/include
   PRIVATE
     src
-    ${tl-expected_SOURCE_DIR}/include
 )

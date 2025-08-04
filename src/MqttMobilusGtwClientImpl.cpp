@@ -31,7 +31,7 @@ MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(Config config)
 
 MqttMobilusGtwClientImpl::~MqttMobilusGtwClientImpl()
 {
-    disconnect();
+    (void) disconnect();
 
     if (nullptr != mMosq) {
         mosquitto_destroy(mMosq);
@@ -39,14 +39,17 @@ MqttMobilusGtwClientImpl::~MqttMobilusGtwClientImpl()
     }
 }
 
-bool MqttMobilusGtwClientImpl::connect()
+tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
 {
+    int rc;
+
     if (mConnected) {
-        return true;
+        return {};
     }
 
-    if (MOSQ_ERR_SUCCESS != connectMqtt()) {
-        return false;
+    rc = connectMqtt();
+    if (MOSQ_ERR_SUCCESS != rc) {
+        return tl::unexpected(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
     mConnected = true;
@@ -60,36 +63,42 @@ bool MqttMobilusGtwClientImpl::connect()
     cond.wait();
 
     if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
-        return false;
+        return tl::unexpected(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
     mosquitto_user_data_set(mMosq, this); // use self from now, needed for message callback
     mosquitto_message_callback_set(mMosq, onMessageCallback);
 
-    if (MOSQ_ERR_SUCCESS != mosquitto_subscribe(mMosq, nullptr, mClientId.toHex().c_str(), 0)) {
+    rc = mosquitto_subscribe(mMosq, nullptr, mClientId.toHex().c_str(), 0);
+    if (MOSQ_ERR_SUCCESS != rc) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
-        return false;
+
+        return tl::unexpected(Error::Transport("MQTT subscription to client queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
-    if (MOSQ_ERR_SUCCESS != mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0)) {
+    rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0);
+    if (MOSQ_ERR_SUCCESS != rc) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
-        return false;
+        
+        return tl::unexpected(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
-    if (!login()) {
+    auto expected = login();
+    if (!expected) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
-        return false;
+
+        return expected;
     }
 
     scheduleTimer();
 
-    return true;
+    return {};
 }
 
-void MqttMobilusGtwClientImpl::disconnect()
+tl::expected<void, Error> MqttMobilusGtwClientImpl::disconnect()
 {
     clearSession();
 
@@ -97,40 +106,48 @@ void MqttMobilusGtwClientImpl::disconnect()
         mConfig.clientWatcher->unwatchSocket(this, mosquitto_socket(mMosq));
         mConfig.clientWatcher->unwatchTimer(this);
 
-        mosquitto_disconnect(mMosq);
+        int rc = mosquitto_disconnect(mMosq);
         mConnected = false;
+
+        if (MOSQ_ERR_SUCCESS != rc) {
+            return tl::unexpected(Error::Transport("MQTT disconnect failed: " + std::string(mosquitto_strerror(rc))));
+        }
     }
+
+    return {};
 }
 
-bool MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
+tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
 {
     if (!mConnected) {
-        return false;
+        return tl::unexpected(Error::NoConnection("Not connected"));
     }
 
     Envelope envelope = envelopeFor(message);
 
     if (MessageType::LoginRequest != envelope.messageType) {
         if (!mPrivateEncryptor) {
-            return false;
+            return tl::unexpected(Error::Unknown("Private key is missing which should not happen in this client state."));
         }
 
         envelope.messageBody = mPrivateEncryptor->encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
     }
 
     auto payload = envelope.serialize();
+    int rc = mosquitto_publish(mMosq, nullptr, kRequestsTopic, static_cast<int>(payload.size()), payload.data(), 0, false);
 
-    if (MOSQ_ERR_SUCCESS != mosquitto_publish(mMosq, nullptr, kRequestsTopic, static_cast<int>(payload.size()), payload.data(), 0, false)) {
-        return false;
+    if (MOSQ_ERR_SUCCESS != rc) {
+        return tl::unexpected(Error::Transport("MQTT publish failed: " + std::string(mosquitto_strerror(rc))));
     }
 
-    return true;
+    return {};
 }
 
-bool MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
+tl::expected<void, Error> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
 {
-    if (!send(request)) {
-        return false;
+    auto expected = send(request);
+    if (!expected) {
+        return expected;
     }
 
     SelectCondition cond(*this, mosquitto_socket(mMosq));
@@ -142,18 +159,19 @@ bool MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& 
     mExpectedMessage = nullptr;
 
     if (Envelope::ResponseStatus::AuthenticationFailed == expectedMessage.responseStatus) {
-        if (!login()) {
-            return false;
+        auto expected = login();
+        if (!expected) {
+            return expected;
         }
 
         return sendRequest(request, response);
     }
 
     if (Envelope::ResponseStatus::Success != expectedMessage.responseStatus) {
-        return false;
+        return tl::unexpected(Error::BadResponse("Mobilus responded with: " + std::to_string(expectedMessage.responseStatus)));
     }
 
-    return true;
+    return {};
 }
 
 io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
@@ -185,6 +203,7 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
             handleLostConnection();
             return;
         }
+
         processQueuedMessages();
     }
 
@@ -238,7 +257,7 @@ void MqttMobilusGtwClientImpl::onMessageCallback(mosquitto*, void* obj, const mo
     self->onMessage(mosqMessage);
 }
 
-bool MqttMobilusGtwClientImpl::login()
+tl::expected<void, Error> MqttMobilusGtwClientImpl::login()
 {
     proto::LoginRequest request;
     proto::LoginResponse response;
@@ -249,12 +268,13 @@ bool MqttMobilusGtwClientImpl::login()
 
     mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
 
-    if (!sendRequest(request, response)) {
-        return false;
+    auto expected = sendRequest(request, response);
+    if (!expected) {
+        return expected;
     }
 
     if (0 != response.login_status()) {
-        return false;
+        return tl::unexpected(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided."));
     }
 
     auto publicKey = crypto::bytes(response.public_key().begin(), response.public_key().end());
@@ -269,8 +289,8 @@ bool MqttMobilusGtwClientImpl::login()
         std::move(privateKey),
         response.serial_number(),
     };
-
-    return true;
+    
+    return {};
 }
 
 void MqttMobilusGtwClientImpl::onMessage(const mosquitto_message* mosqMessage)
@@ -360,7 +380,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
     auto& event = callEvents.events(0);
 
     if (!event.value().compare("EXPIRED")) {
-        login();
+        (void) login();
         return;
     }
 
@@ -371,7 +391,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
         mConfig.onSessionExpiring(remaningTime);
 
         if (mConfig.keepAliveMessage) {
-            send(*mConfig.keepAliveMessage);
+            (void) send(*mConfig.keepAliveMessage);
         }
     }
 }
@@ -379,7 +399,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
 void MqttMobilusGtwClientImpl::handleBadMessage(const Envelope& envelope)
 {
     if (Envelope::ResponseStatus::AuthenticationFailed == envelope.responseStatus) {
-        login();
+        (void) login();
     }
 }
 
@@ -406,7 +426,7 @@ int MqttMobilusGtwClientImpl::connectMqtt()
     mMosq = mosquitto_new(mClientId.toHex().c_str(), true, nullptr);
 
     if (nullptr == mMosq) {
-        return errno;
+        return MOSQ_ERR_ERRNO;
     }
 
     int rc;
@@ -439,6 +459,7 @@ void MqttMobilusGtwClientImpl::reconnect()
     if (!connect()) {
         mReconnectDelay.next();
         mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
+
         return;
     }
 

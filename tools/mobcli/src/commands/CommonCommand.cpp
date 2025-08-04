@@ -46,7 +46,7 @@ const char* CommonCommand::getEnvOr(const char* name, const char* defaultValue)
     return value;
 }
 
-std::unique_ptr<MqttMobilusGtwClient> CommonCommand::connectMobilus(cxxopts::ParseResult r, io::ClientWatcher* clientWatcher)
+std::unique_ptr<MqttMobilusGtwClient> CommonCommand::mqttMobilusGtwClient(cxxopts::ParseResult r, io::ClientWatcher* clientWatcher)
 {
     MqttMobilusGtwClientConfig config(r["host"].as<std::string>(), kMobilusMqttPort, r["username"].as<std::string>(), r["password"].as<std::string>(), ::kMobilusCaFile);
     
@@ -60,14 +60,7 @@ std::unique_ptr<MqttMobilusGtwClient> CommonCommand::connectMobilus(cxxopts::Par
         config.onRawMessage = printRawMessage;
     }
 
-    auto client = MqttMobilusGtwClient::with(std::move(config));
-
-    if (!client->connect()) {
-        std::cerr << "connection failed" << std::endl;
-        return nullptr;
-    }
-
-    return client;
+    return MqttMobilusGtwClient::with(std::move(config));
 }
 
 }

@@ -34,10 +34,10 @@ public:
     MqttMobilusGtwClientImpl(Config config);
     ~MqttMobilusGtwClientImpl();
 
-    bool connect() override;
-    void disconnect() override;
-    bool send(const google::protobuf::MessageLite& message) override;
-    bool sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response) override;
+    tl::expected<void, Error> connect() override;
+    tl::expected<void, Error> disconnect() override;
+    tl::expected<void, Error> send(const google::protobuf::MessageLite& message) override;
+    tl::expected<void, Error> sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response) override;
 
     MessageBus& messageBus() override { return mMessageBus; }
     const std::optional<SessionInformation>& sessionInfo() const override { return mSessionInfo; }
@@ -88,7 +88,7 @@ private:
 
     int connectMqtt();
     void reconnect();
-    bool login();
+    tl::expected<void, Error> login();
     void onMessage(const mosquitto_message* mosqMessage);
     void onGeneralMessage(const mosquitto_message* mosqMessage);
     void onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage);

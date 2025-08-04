@@ -37,9 +37,14 @@ int CallEventsCommand::execute(int argc, char* argv[])
         return 1;
     }
 
-    auto client = connectMobilus(r);
-    if (!client) {
-        return 1;
+    auto client = mqttMobilusGtwClient(r);
+
+    {
+        auto expected = client->connect();
+        if (!expected) {
+            std::cerr << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     proto::CallEvents callEvents;
@@ -50,8 +55,9 @@ int CallEventsCommand::execute(int argc, char* argv[])
     event->set_value(r["value"].as<std::string>());
     event->set_platform(r["platform"].as<int32_t>());
 
-    if (!client->send(callEvents)) {
-        std::cerr << "call events failed" << std::endl;
+    auto expected = client->send(callEvents);
+    if (!expected) {
+        std::cerr << "call events failed: " << expected.error().message << std::endl;
         return 1;
     }
 

@@ -24,17 +24,24 @@ int DeviceListCommand::execute(int argc, char* argv[])
         return 0;
     }
 
-    auto client = connectMobilus(r);
+    auto client = mqttMobilusGtwClient(r);
 
-    if (!client) {
-        return 1;
+    {
+        auto expected = client->connect();
+        if (!expected) {
+            std::cerr << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     proto::DevicesListResponse response;
 
-    if (!client->sendRequest(proto::DevicesListRequest(), response)) {
-        std::cerr << "device list request failed" << std::endl;
-        return 1;
+    {
+        auto expected = client->sendRequest(proto::DevicesListRequest(), response);
+        if (!expected) {
+            std::cerr << "device list request failed: " << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     std::cout << "devices_count: " << response.devices_size() << std::endl;

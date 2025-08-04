@@ -24,20 +24,27 @@ int DeviceSettingsCommand::execute(int argc, char* argv[])
         return 0;
     }
 
-    auto client = connectMobilus(r);
+    auto client = mqttMobilusGtwClient(r);
 
-    if (!client) {
-        return 1;
+    {
+        auto expected = client->connect();
+        if (!expected) {
+            std::cerr << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
-    proto::DeviceSettingsRequest request;
     proto::DeviceSettingsResponse response;
 
-    request.set_action(Action::Query);
+    {
+        proto::DeviceSettingsRequest request;
+        request.set_action(Action::Query);
 
-    if (!client->sendRequest(request, response)) {
-        std::cerr << "device settings request failed" << std::endl;
-        return 1;
+        auto expected = client->sendRequest(request, response);
+        if (!expected) {
+            std::cerr << "device settings request failed: " << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     std::cout << "operation_status: " << response.operation_status() << std::endl

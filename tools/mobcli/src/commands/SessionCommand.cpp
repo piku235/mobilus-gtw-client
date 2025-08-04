@@ -25,10 +25,14 @@ int SessionCommand::execute(int argc, char* argv[])
         return 0;
     }
 
-    auto client = connectMobilus(r);
+    auto client = mqttMobilusGtwClient(r);
 
-    if (!client) {
-        return 1;
+    {
+        auto expected = client->connect();
+        if (!expected) {
+            std::cerr << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     std::cout << "user_id: " << client->sessionInfo()->userId << std::endl

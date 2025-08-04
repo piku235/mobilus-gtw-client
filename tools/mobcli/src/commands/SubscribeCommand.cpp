@@ -14,10 +14,10 @@ static MqttMobilusGtwClient* sMobilusGtwClient = nullptr;
 static void handleSignal(int signal)
 {
     if (nullptr != sMobilusGtwClient) {
-        sMobilusGtwClient->disconnect();
+        auto expected = sMobilusGtwClient->disconnect();
         sMobilusGtwClient = nullptr;
 
-        std::cout << "disconnected" << std::endl;
+        std::cout << "disconnected" << (!expected ? " with error: " + expected.error().message : "") << std::endl;
     }
 }
 
@@ -39,10 +39,14 @@ int SubscribeCommand::execute(int argc, char* argv[])
     }
 
     io::BlockingClientWatcher clientWatcher;
-    auto client = connectMobilus(r, &clientWatcher);
+    auto client = mqttMobilusGtwClient(r, &clientWatcher);
 
-    if (!client) {
-        return 1;
+    {
+        auto expected = client->connect();
+        if (!expected) {
+            std::cerr << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     sMobilusGtwClient = client.get();

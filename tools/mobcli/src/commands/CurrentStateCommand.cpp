@@ -23,17 +23,24 @@ int CurrentStateCommand::execute(int argc, char* argv[])
         return 0;
     }
 
-    auto client = connectMobilus(r);
+    auto client = mqttMobilusGtwClient(r);
 
-    if (!client) {
-        return 1;
+    {
+        auto expected = client->connect();
+        if (!expected) {
+            std::cerr << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     proto::CurrentStateResponse response;
 
-    if (!client->sendRequest(proto::CurrentStateRequest(), response)) {
-        std::cerr << "current state request failed" << std::endl;
-        return 1;
+    {
+        auto expected = client->sendRequest(proto::CurrentStateRequest(), response);
+        if (!expected) {
+            std::cerr << "current state request failed: " << expected.error().message << std::endl;
+            return 1;
+        }
     }
 
     std::cout << "events_size: " << response.events_size() << std::endl;
