@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <optional>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -20,9 +21,10 @@ struct Envelope {
     uint8_t responseStatus;
     std::vector<uint8_t> messageBody;
 
-    uint32_t size() const;
-    static Envelope deserialize(const uint8_t* payload, uint32_t size);
+    static std::optional<Envelope> deserialize(const uint8_t* payload, uint32_t size);
     std::vector<uint8_t> serialize() const;
+
+    uint32_t size() const;
 };
 
 }

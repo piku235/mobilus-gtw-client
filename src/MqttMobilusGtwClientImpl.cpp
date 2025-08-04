@@ -311,30 +311,34 @@ void MqttMobilusGtwClientImpl::onMessage(const mosquitto_message* mosqMessage)
 void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMessage)
 {
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
-
-    mConfig.onRawMessage(envelope);
-
-    if (Envelope::ResponseStatus::Success != envelope.responseStatus) {
-        mMessageQueue.push({ mosqMessage->topic, std::move(envelope), nullptr });
+    if (!envelope) {
         return;
     }
 
-    auto& encryptor = MessageType::CallEvents == envelope.messageType ? mPublicEncryptor : mPrivateEncryptor;
+    mConfig.onRawMessage(*envelope);
+
+    if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
+        mMessageQueue.push({ mosqMessage->topic, std::move(*envelope), nullptr });
+        return;
+    }
+
+    auto& encryptor = MessageType::CallEvents == envelope->messageType ? mPublicEncryptor : mPrivateEncryptor;
     if (!encryptor) {
         return;
     }
 
-    auto message = ProtoUtils::newMessageFor(envelope.messageType);
+    auto message = ProtoUtils::newMessageFor(envelope->messageType);
     if (!message) {
         return;
     }
 
-    auto decryptedBody = encryptor->decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+    auto decryptedBody = encryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
+
     if (!message->ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
         return;
     }
 
-    mMessageQueue.push({ mosqMessage->topic, std::move(envelope), std::move(message) });
+    mMessageQueue.push({ mosqMessage->topic, std::move(*envelope), std::move(message) });
 }
 
 void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage)
@@ -342,16 +346,20 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
     auto& cond = expectedMessage.cond;
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
 
-    mConfig.onRawMessage(envelope);
+    if (!envelope) {
+        return;
+    }
 
-    expectedMessage.responseStatus = envelope.responseStatus;
+    mConfig.onRawMessage(*envelope);
 
-    if (Envelope::ResponseStatus::Success != envelope.responseStatus) {
+    expectedMessage.responseStatus = envelope->responseStatus;
+
+    if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
         cond.notify();
         return;
     }
 
-    if (envelope.messageType != expectedMessage.expectedMessageType) {
+    if (envelope->messageType != expectedMessage.expectedMessageType) {
         cond.notify();
         return;
     }
@@ -361,7 +369,7 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
         return;
     }
 
-    auto decryptedBody = mPrivateEncryptor->decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+    auto decryptedBody = mPrivateEncryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
 
     if (!expectedMessage.expectedMessage.ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
         cond.notify();

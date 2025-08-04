@@ -17,9 +17,15 @@ uint32_t Envelope::size() const
     );
 }
 
-Envelope Envelope::deserialize(const uint8_t* payload, uint32_t)
+std::optional<Envelope> Envelope::deserialize(const uint8_t* payload, uint32_t size)
 {
     Envelope envelope;
+
+    // is lower than min size
+    if (size < envelope.size()) {
+        return std::nullopt;
+    }
+
     uint32_t messageSize;
 
     const uint8_t* offset = payload;
@@ -27,6 +33,11 @@ Envelope Envelope::deserialize(const uint8_t* payload, uint32_t)
     memcpy(&messageSize, offset, sizeof(messageSize));
     messageSize = ntohl(messageSize);
     offset += sizeof(messageSize);
+
+    // size mismtach
+    if (messageSize + sizeof(messageSize) != size) {
+        return std::nullopt;
+    }
 
     memcpy(&envelope.messageType, offset, sizeof(envelope.messageType));
     offset += sizeof(envelope.messageType);
