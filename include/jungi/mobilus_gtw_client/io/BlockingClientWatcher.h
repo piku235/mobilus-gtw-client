@@ -8,7 +8,7 @@ static constexpr int kInvalidSocketFd = -1;
 
 namespace jungi::mobilus_gtw_client::io {
 
-class BlockingClientWatcher : public ClientWatcher {
+class BlockingClientWatcher final : public ClientWatcher {
 public:
     void loop();
 
