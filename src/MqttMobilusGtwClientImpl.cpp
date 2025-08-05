@@ -129,7 +129,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf:
 
     if (MessageType::LoginRequest != envelope.messageType) {
         if (!mPrivateEncryptor) {
-            return logAndReturn(Error::Unknown("Private key is missing which should not happen in this client state."));
+            return logAndReturn(Error::Unknown("Private key is missing which should not happen in this client state"));
         }
 
         envelope.messageBody = mPrivateEncryptor->encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
@@ -272,7 +272,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::login()
     }
 
     if (0 != response.login_status()) {
-        return logAndReturn(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided."));
+        return logAndReturn(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided"));
     }
 
     auto publicKey = crypto::bytes(response.public_key().begin(), response.public_key().end());
@@ -492,6 +492,8 @@ void MqttMobilusGtwClientImpl::reconnect()
     if (!mReconnecting) {
         return;
     }
+
+    mConfig.logger->info("Reconnecting to MQTT broker and mobilus");
 
     if (!connect()) {
         mReconnectDelay.next();
