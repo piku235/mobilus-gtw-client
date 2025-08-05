@@ -8,12 +8,12 @@ namespace jungi::mobilus_gtw_client {
 class Error final {
 public:    
     enum class Code: uint8_t {
-        AuthenticationFailed = 0,
-        BadResponse = 1,
-        BadMessage = 2,
-        UnexpectedMessage = 3,
-        Transport = 4,
-        NoConnection = 5,
+        AuthenticationFailed = 1,
+        BadResponse = 2,
+        BadMessage = 3,
+        UnexpectedMessage = 4,
+        Transport = 5,
+        NoConnection = 6,
         Unknown = 255,
     };
 
