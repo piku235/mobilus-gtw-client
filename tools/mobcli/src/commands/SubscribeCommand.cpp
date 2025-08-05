@@ -17,7 +17,7 @@ static void handleSignal(int signal)
         auto e = sMobilusGtwClient->disconnect();
         sMobilusGtwClient = nullptr;
 
-        std::cout << "disconnected" << (!e ? " with error: " + e.error().message : "") << std::endl;
+        std::cout << "disconnected" << (!e ? " with error: " + e.error().message() : "") << std::endl;
     }
 }
 
@@ -42,7 +42,7 @@ int SubscribeCommand::execute(int argc, char* argv[])
     auto client = mqttMobilusGtwClient(r, &clientWatcher);
 
     if (auto e = client->connect(); !e) {
-        std::cerr << e.error().message << std::endl;
+        std::cerr << e.error().message() << std::endl;
         return 1;
     }
 

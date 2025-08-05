@@ -26,7 +26,7 @@ int SessionCommand::execute(int argc, char* argv[])
     auto client = mqttMobilusGtwClient(r);
 
     if (auto e = client->connect(); !e) {
-        std::cerr << e.error().message << std::endl;
+        std::cerr << e.error().message() << std::endl;
         return 1;
     }
 

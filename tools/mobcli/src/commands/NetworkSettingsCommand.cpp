@@ -27,7 +27,7 @@ int NetworkSettingsCommand::execute(int argc, char* argv[])
     auto client = mqttMobilusGtwClient(r);
 
     if (auto e = client->connect(); !e) {
-        std::cerr << e.error().message << std::endl;
+        std::cerr << e.error().message() << std::endl;
         return 1;
     }
     
@@ -37,7 +37,7 @@ int NetworkSettingsCommand::execute(int argc, char* argv[])
     request.set_action(Action::Query);
 
     if (auto e = client->sendRequest(request, response); !e) {
-        std::cerr << "network settings request failed: " << e.error().message << std::endl;
+        std::cerr << "network settings request failed: " << e.error().message() << std::endl;
         return 1;
     }
 

@@ -62,14 +62,15 @@ int main() {
     });
     
      // connect to MQTT broker and authenticate with Cosmo GTW
-    if (!client.connect()) {
-        // handle connection failure
+    if (auto e = client.connect(); !e) {
+        // print, log or handle error
         return 1;
     }
 
     // sends the request and waits for the response
     proto::DevicesListResponse response;
-    if (!client.sendRequest(proto::DevicesListRequest(), response)) {
+    if (auto e = client.sendRequest(proto::DevicesListRequest(), response); !e) {
+        // print, log or handle error
         return 1;
     }
 

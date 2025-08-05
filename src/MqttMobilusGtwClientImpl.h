@@ -16,7 +16,6 @@
 #include <memory>
 #include <queue>
 #include <string>
-#include <tuple>
 #include <vector>
 
 namespace jungi::mobilus_gtw_client {
@@ -50,7 +49,12 @@ public:
     void handleTimerEvent() override;
 
 private:
-    using QueuedMessage = std::tuple<std::string, Envelope, std::unique_ptr<google::protobuf::MessageLite>>;
+    struct QueuedMessage {
+        std::string topic;
+        uint8_t messageType;
+        std::unique_ptr<google::protobuf::MessageLite> message;
+        std::optional<Error> error = std::nullopt;
+    };
 
     class LibInit {
     public:
@@ -68,6 +72,7 @@ private:
         uint8_t expectedMessageType;
         google::protobuf::MessageLite& expectedMessage;
         uint8_t responseStatus = 0xFF;
+        std::optional<Error> error = std::nullopt;
     };
 
     mosquitto* mMosq = nullptr;
@@ -93,11 +98,12 @@ private:
     void onGeneralMessage(const mosquitto_message* mosqMessage);
     void onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage);
     void handleClientCallEvents(const proto::CallEvents& callEvents);
-    void handleBadMessage(const Envelope& envelope);
-    void handleLostConnection();
+    void processError(const Error& error);
+    void handleLostConnection(int rc);
     void processQueuedMessages();
     void clearSession();
     void scheduleTimer();
+    tl::unexpected<Error> recordAndReturn(Error error);
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     std::unique_ptr<crypto::Encryptor> encryptorFor(crypto::bytes key);
 };

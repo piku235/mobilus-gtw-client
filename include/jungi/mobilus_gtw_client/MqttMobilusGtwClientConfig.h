@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Error.h"
 #include "Envelope.h"
 #include "io/NullClientWatcher.h"
 
@@ -16,6 +17,7 @@ namespace jungi::mobilus_gtw_client {
 struct MqttMobilusGtwClientConfig final {
     using RawMessageCallback = std::function<void(const Envelope&)>;
     using SessionExpiringCallback = std::function<void(int remaningTime)>;
+    using ErrorCallback = std::function<void(const Error& error)>;
 
     const std::string host;
     const uint32_t port;
@@ -28,6 +30,7 @@ struct MqttMobilusGtwClientConfig final {
     /** hooks **/
     SessionExpiringCallback onSessionExpiring = [](int) {};
     RawMessageCallback onRawMessage = [](const Envelope&) {};
+    ErrorCallback onError = [](const Error&) {};
 
     MqttMobilusGtwClientConfig(std::string aHost, uint32_t aPort, std::string aUsername, std::string aPassword, std::optional<std::string> aCafile = std::nullopt)
         : host(std::move(aHost))

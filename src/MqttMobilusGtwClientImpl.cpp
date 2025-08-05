@@ -49,7 +49,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
 
     rc = connectMqtt();
     if (MOSQ_ERR_SUCCESS != rc) {
-        return tl::unexpected(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
+        return recordAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
     mConnected = true;
@@ -63,7 +63,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
     cond.wait();
 
     if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
-        return tl::unexpected(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
+        return recordAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
     mosquitto_user_data_set(mMosq, this); // use self from now, needed for message callback
@@ -74,7 +74,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
-        return tl::unexpected(Error::Transport("MQTT subscription to client queue failed due to: " + std::string(mosquitto_strerror(rc))));
+        return recordAndReturn(Error::Transport("MQTT subscription to client queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
     rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0);
@@ -82,15 +82,14 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
         mosquitto_disconnect(mMosq);
         mConnected = false;
         
-        return tl::unexpected(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
+        return recordAndReturn(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
-    auto expected = login();
-    if (!expected) {
+    if (auto e = login(); !e) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
-        return expected;
+        return e;
     }
 
     scheduleTimer();
@@ -110,7 +109,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::disconnect()
         mConnected = false;
 
         if (MOSQ_ERR_SUCCESS != rc) {
-            return tl::unexpected(Error::Transport("MQTT disconnect failed: " + std::string(mosquitto_strerror(rc))));
+            return recordAndReturn(Error::Transport("MQTT disconnect failed: " + std::string(mosquitto_strerror(rc))));
         }
     }
 
@@ -120,14 +119,14 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::disconnect()
 tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
 {
     if (!mConnected) {
-        return tl::unexpected(Error::NoConnection("Not connected"));
+        return recordAndReturn(Error::NoConnection("Not connected"));
     }
 
     Envelope envelope = envelopeFor(message);
 
     if (MessageType::LoginRequest != envelope.messageType) {
         if (!mPrivateEncryptor) {
-            return tl::unexpected(Error::Unknown("Private key is missing which should not happen in this client state."));
+            return recordAndReturn(Error::Unknown("Private key is missing which should not happen in this client state."));
         }
 
         envelope.messageBody = mPrivateEncryptor->encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
@@ -137,7 +136,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf:
     int rc = mosquitto_publish(mMosq, nullptr, kRequestsTopic, static_cast<int>(payload.size()), payload.data(), 0, false);
 
     if (MOSQ_ERR_SUCCESS != rc) {
-        return tl::unexpected(Error::Transport("MQTT publish failed: " + std::string(mosquitto_strerror(rc))));
+        return recordAndReturn(Error::Transport("MQTT publish failed: " + std::string(mosquitto_strerror(rc))));
     }
 
     return {};
@@ -145,33 +144,30 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf:
 
 tl::expected<void, Error> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
 {
-    auto expected = send(request);
-    if (!expected) {
-        return expected;
+    if (auto e = send(request); !e) {
+        return e;
     }
 
     SelectCondition cond(*this, mosquitto_socket(mMosq));
     ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response };
+    
     mExpectedMessage = &expectedMessage;
-
     cond.wait();
-
     mExpectedMessage = nullptr;
 
-    if (Envelope::ResponseStatus::AuthenticationFailed == expectedMessage.responseStatus) {
-        auto expected = login();
-        if (!expected) {
-            return expected;
+    if (!expectedMessage.error) {
+        return {};
+    }
+
+    if (Error::Code::AuthenticationFailed == expectedMessage.error->code()) {
+        if (auto e = login(); !e) {
+            return e;
         }
 
         return sendRequest(request, response);
     }
 
-    if (Envelope::ResponseStatus::Success != expectedMessage.responseStatus) {
-        return tl::unexpected(Error::BadResponse("Mobilus responded with: " + std::to_string(expectedMessage.responseStatus)));
-    }
-
-    return {};
+    return recordAndReturn(std::move(*expectedMessage.error));
 }
 
 io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
@@ -200,7 +196,7 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
         int rc = mosquitto_loop_read(mMosq, 1);
 
         if (MOSQ_ERR_SUCCESS != rc) {
-            handleLostConnection();
+            handleLostConnection(rc);
             return;
         }
 
@@ -211,7 +207,7 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
         int rc = mosquitto_loop_write(mMosq, 1);
 
         if (MOSQ_ERR_SUCCESS != rc) {
-            handleLostConnection();
+            handleLostConnection(rc);
             return;
         }
     }
@@ -227,7 +223,7 @@ void MqttMobilusGtwClientImpl::handleTimerEvent()
     int rc = mosquitto_loop_misc(mMosq);
 
     if (MOSQ_ERR_SUCCESS != rc) {
-        handleLostConnection();
+        handleLostConnection(rc);
         return;
     }
 
@@ -268,13 +264,12 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::login()
 
     mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
 
-    auto expected = sendRequest(request, response);
-    if (!expected) {
-        return expected;
+    if (auto e = sendRequest(request, response); !e) {
+        return e;
     }
 
     if (0 != response.login_status()) {
-        return tl::unexpected(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided."));
+        return recordAndReturn(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided."));
     }
 
     auto publicKey = crypto::bytes(response.public_key().begin(), response.public_key().end());
@@ -312,33 +307,42 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
 {
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
     if (!envelope) {
+        mMessageQueue.push({ mosqMessage->topic, MessageType::Unknown, nullptr, Error::BadMessage("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen)) });
         return;
     }
 
     mConfig.onRawMessage(*envelope);
 
+    if (Envelope::ResponseStatus::AuthenticationFailed == envelope->responseStatus) {
+        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::AuthenticationFailed("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus)) });
+        return;
+    }
+
     if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
-        mMessageQueue.push({ mosqMessage->topic, std::move(*envelope), nullptr });
+        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::BadResponse("Bad response from mobilus: " + std::to_string(envelope->responseStatus)) });
         return;
     }
 
     auto& encryptor = MessageType::CallEvents == envelope->messageType ? mPublicEncryptor : mPrivateEncryptor;
     if (!encryptor) {
+        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::Unknown("Missing encryptor for message type: " + std::to_string(envelope->messageType)) });
         return;
     }
 
     auto message = ProtoUtils::newMessageFor(envelope->messageType);
     if (!message) {
+        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::Unknown("Missing proto for message type: " + std::to_string(envelope->messageType)) });
         return;
     }
 
     auto decryptedBody = encryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
 
     if (!message->ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
+        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::BadMessage("Failed to parse proto of message type: " + std::to_string(envelope->messageType)) });
         return;
     }
 
-    mMessageQueue.push({ mosqMessage->topic, std::move(*envelope), std::move(message) });
+    mMessageQueue.push({ mosqMessage->topic, envelope->messageType, std::move(message) });
 }
 
 void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage)
@@ -347,6 +351,9 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
 
     if (!envelope) {
+        expectedMessage.error = Error::BadMessage("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen));
+        cond.notify();
+
         return;
     }
 
@@ -354,25 +361,40 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
 
     expectedMessage.responseStatus = envelope->responseStatus;
 
-    if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
+    if (Envelope::ResponseStatus::AuthenticationFailed == envelope->responseStatus) {
+        expectedMessage.error = Error::AuthenticationFailed("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
         cond.notify();
+
+        return;
+    }
+
+    if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
+        expectedMessage.error = Error::BadResponse("Bad response from mobilus: " + std::to_string(envelope->responseStatus));
+        cond.notify();
+
         return;
     }
 
     if (envelope->messageType != expectedMessage.expectedMessageType) {
+        expectedMessage.error = Error::UnexpectedMessage("Expected to get message: " + std::to_string(expectedMessage.expectedMessageType) + " but got: " + std::to_string(envelope->messageType));
         cond.notify();
+
         return;
     }
 
     if (!mPrivateEncryptor) {
+        expectedMessage.error = Error::Unknown("Missing private encryptor for message type: " + std::to_string(envelope->messageType));
         cond.notify();
+
         return;
     }
 
     auto decryptedBody = mPrivateEncryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
 
     if (!expectedMessage.expectedMessage.ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
+        expectedMessage.error = Error::BadMessage("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
         cond.notify();
+
         return;
     }
 
@@ -404,18 +426,22 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
     }
 }
 
-void MqttMobilusGtwClientImpl::handleBadMessage(const Envelope& envelope)
+void MqttMobilusGtwClientImpl::processError(const Error& error)
 {
-    if (Envelope::ResponseStatus::AuthenticationFailed == envelope.responseStatus) {
+    mConfig.onError(error);
+
+    if (Error::Code::AuthenticationFailed == error.code()) {
         (void) login();
     }
 }
 
-void MqttMobilusGtwClientImpl::handleLostConnection()
+void MqttMobilusGtwClientImpl::handleLostConnection(int rc)
 {
     if (mReconnecting) {
         return;
     }
+
+    mConfig.onError(Error::Transport("MQTT connection lost: " + std::string(mosquitto_strerror(rc))));
 
     mConfig.clientWatcher->unwatchSocket(this, mosquitto_socket(mMosq));
     mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
@@ -478,20 +504,20 @@ void MqttMobilusGtwClientImpl::reconnect()
 void MqttMobilusGtwClientImpl::processQueuedMessages()
 {
     for (; !mMessageQueue.empty(); mMessageQueue.pop()) {
-        auto& [messageTopic, envelope, message] = mMessageQueue.front();
+        auto& queuedMessage = mMessageQueue.front();
 
-        if (!message) {
-            handleBadMessage(envelope);
+        if (queuedMessage.error) {
+            processError(*queuedMessage.error);
             continue;
         }
 
         // session call events
-        if (!messageTopic.compare(mClientId.toHex()) && MessageType::CallEvents == envelope.messageType) {
-            handleClientCallEvents(static_cast<const proto::CallEvents&>(*message));
+        if (!queuedMessage.topic.compare(mClientId.toHex()) && MessageType::CallEvents == queuedMessage.messageType) {
+            handleClientCallEvents(static_cast<const proto::CallEvents&>(*queuedMessage.message));
             continue;
         }
 
-        mMessageBus.dispatch(*message);
+        mMessageBus.dispatch(*queuedMessage.message);
     }
 }
 
@@ -505,6 +531,13 @@ void MqttMobilusGtwClientImpl::clearSession()
 void MqttMobilusGtwClientImpl::scheduleTimer()
 {
     mConfig.clientWatcher->watchTimer(this, std::chrono::seconds(1)); // due to mosquitto_loop_misc() PINGREQ
+}
+
+tl::unexpected<Error> MqttMobilusGtwClientImpl::recordAndReturn(Error error)
+{
+    mConfig.onError(error);
+
+    return tl::unexpected(std::move(error));
 }
 
 Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLite& message)
