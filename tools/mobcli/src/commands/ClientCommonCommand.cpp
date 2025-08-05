@@ -1,10 +1,12 @@
 #include "config.h"
 #include "Utils.h"
 #include "ClientCommonCommand.h"
+#include "mobilus_gtw_client/StderrLogger.h"
 #include "jungi/mobilus_gtw_client/proto/DeviceSettingsRequest.pb.h"
 
 #include <iostream>
 
+using namespace mobcli::mobilus_gtw_client;
 using namespace jungi::mobilus_gtw_client;
 
 static const size_t kMobilusMqttPort = 8883;
@@ -39,9 +41,12 @@ void ClientCommonCommand::addGeneralOptions(cxxopts::Options& opts)
 
 std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(cxxopts::ParseResult r, io::ClientWatcher* clientWatcher)
 {
+    static StderrLogger logger;
+
     MqttMobilusGtwClientConfig config(r["host"].as<std::string>(), kMobilusMqttPort, r["username"].as<std::string>(), r["password"].as<std::string>(), ::kMobilusCaFile);
     
     config.keepAliveMessage = std::make_unique<proto::DeviceSettingsRequest>();
+    config.logger = &logger;
 
     if (nullptr != clientWatcher) {
         config.clientWatcher = clientWatcher;

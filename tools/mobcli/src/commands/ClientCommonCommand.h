@@ -9,10 +9,13 @@
 
 namespace mobcli::commands {
 
+namespace mobgtw = jungi::mobilus_gtw_client; 
+
 class ClientCommonCommand : public Command {
 protected:
     void addGeneralOptions(cxxopts::Options& opts);
-    std::unique_ptr<jungi::mobilus_gtw_client::MqttMobilusGtwClient> mqttMobilusGtwClient(cxxopts::ParseResult r, jungi::mobilus_gtw_client::io::ClientWatcher* clientWatcher = nullptr);
+    std::unique_ptr<mobgtw::logging::Logger> mqttMobilusGtwClientLogger(cxxopts::ParseResult r);
+    std::unique_ptr<mobgtw::MqttMobilusGtwClient> mqttMobilusGtwClient(cxxopts::ParseResult r, mobgtw::io::ClientWatcher* clientWatcher = nullptr);
 };
 
 }

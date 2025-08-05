@@ -26,15 +26,13 @@ int DeviceListCommand::execute(int argc, char* argv[])
 
     auto client = mqttMobilusGtwClient(r);
 
-    if (auto e = client->connect(); !e) {
-        std::cerr << e.error().message() << std::endl;
+    if (!client->connect()) {
         return 1;
     }
 
     proto::DevicesListResponse response;
         
-    if (auto e = client->sendRequest(proto::DevicesListRequest(), response); !e) {
-        std::cerr << "device list request failed: " << e.error().message() << std::endl;
+    if (!client->sendRequest(proto::DevicesListRequest(), response)) {
         return 1;
     }
 

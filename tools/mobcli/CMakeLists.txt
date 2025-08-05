@@ -19,6 +19,7 @@ configure_file(
 add_executable(mobcli
   src/main.cpp
   src/App.cpp
+  src/mobilus_gtw_client/StderrLogger.cpp
   src/commands/ClientCommonCommand.cpp
   src/commands/CallEventsCommand.cpp
   src/commands/CurrentStateCommand.cpp

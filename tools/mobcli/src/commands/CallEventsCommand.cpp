@@ -39,8 +39,7 @@ int CallEventsCommand::execute(int argc, char* argv[])
 
     auto client = mqttMobilusGtwClient(r);
 
-    if (auto e = client->connect(); !e) {
-        std::cerr << e.error().message() << std::endl;
+    if (!client->connect()) {
         return 1;
     }
 
@@ -52,9 +51,7 @@ int CallEventsCommand::execute(int argc, char* argv[])
     event->set_value(r["value"].as<std::string>());
     event->set_platform(r["platform"].as<int32_t>());
 
-    auto expected = client->send(callEvents);
-    if (!expected) {
-        std::cerr << "call events failed: " << expected.error().message() << std::endl;
+    if (!client->send(callEvents)) {
         return 1;
     }
 
