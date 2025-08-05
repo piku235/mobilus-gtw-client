@@ -49,7 +49,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
 
     rc = connectMqtt();
     if (MOSQ_ERR_SUCCESS != rc) {
-        return recordAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
+        return logAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
     mConnected = true;
@@ -63,8 +63,10 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
     cond.wait();
 
     if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
-        return recordAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
+        return logAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
+
+    mConfig.logger->info("MQTT connected to broker");
 
     mosquitto_user_data_set(mMosq, this); // use self from now, needed for message callback
     mosquitto_message_callback_set(mMosq, onMessageCallback);
@@ -74,7 +76,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
-        return recordAndReturn(Error::Transport("MQTT subscription to client queue failed due to: " + std::string(mosquitto_strerror(rc))));
+        return logAndReturn(Error::Transport("MQTT subscription to client queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
     rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0);
@@ -82,7 +84,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
         mosquitto_disconnect(mMosq);
         mConnected = false;
         
-        return recordAndReturn(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
+        return logAndReturn(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
     if (auto e = login(); !e) {
@@ -93,6 +95,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
     }
 
     scheduleTimer();
+    mConfig.logger->info("Connected to mobilus");
 
     return {};
 }
@@ -109,7 +112,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::disconnect()
         mConnected = false;
 
         if (MOSQ_ERR_SUCCESS != rc) {
-            return recordAndReturn(Error::Transport("MQTT disconnect failed: " + std::string(mosquitto_strerror(rc))));
+            return logAndReturn(Error::Transport("MQTT disconnect failed: " + std::string(mosquitto_strerror(rc))));
         }
     }
 
@@ -119,14 +122,14 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::disconnect()
 tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
 {
     if (!mConnected) {
-        return recordAndReturn(Error::NoConnection("Not connected"));
+        return logAndReturn(Error::NoConnection("Not connected"));
     }
 
     Envelope envelope = envelopeFor(message);
 
     if (MessageType::LoginRequest != envelope.messageType) {
         if (!mPrivateEncryptor) {
-            return recordAndReturn(Error::Unknown("Private key is missing which should not happen in this client state."));
+            return logAndReturn(Error::Unknown("Private key is missing which should not happen in this client state."));
         }
 
         envelope.messageBody = mPrivateEncryptor->encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
@@ -136,7 +139,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf:
     int rc = mosquitto_publish(mMosq, nullptr, kRequestsTopic, static_cast<int>(payload.size()), payload.data(), 0, false);
 
     if (MOSQ_ERR_SUCCESS != rc) {
-        return recordAndReturn(Error::Transport("MQTT publish failed: " + std::string(mosquitto_strerror(rc))));
+        return logAndReturn(Error::Transport("MQTT publish failed: " + std::string(mosquitto_strerror(rc))));
     }
 
     return {};
@@ -167,7 +170,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::sendRequest(const google::pr
         return sendRequest(request, response);
     }
 
-    return recordAndReturn(std::move(*expectedMessage.error));
+    return logAndReturn(std::move(*expectedMessage.error));
 }
 
 io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
@@ -269,7 +272,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::login()
     }
 
     if (0 != response.login_status()) {
-        return recordAndReturn(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided."));
+        return logAndReturn(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided."));
     }
 
     auto publicKey = crypto::bytes(response.public_key().begin(), response.public_key().end());
@@ -428,7 +431,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
 
 void MqttMobilusGtwClientImpl::processError(const Error& error)
 {
-    mConfig.onError(error);
+    mConfig.logger->error(error.message());
 
     if (Error::Code::AuthenticationFailed == error.code()) {
         (void) login();
@@ -441,7 +444,7 @@ void MqttMobilusGtwClientImpl::handleLostConnection(int rc)
         return;
     }
 
-    mConfig.onError(Error::Transport("MQTT connection lost: " + std::string(mosquitto_strerror(rc))));
+    mConfig.logger->error("MQTT connection lost: " + std::string(mosquitto_strerror(rc)));
 
     mConfig.clientWatcher->unwatchSocket(this, mosquitto_socket(mMosq));
     mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
@@ -533,9 +536,9 @@ void MqttMobilusGtwClientImpl::scheduleTimer()
     mConfig.clientWatcher->watchTimer(this, std::chrono::seconds(1)); // due to mosquitto_loop_misc() PINGREQ
 }
 
-tl::unexpected<Error> MqttMobilusGtwClientImpl::recordAndReturn(Error error)
+tl::unexpected<Error> MqttMobilusGtwClientImpl::logAndReturn(Error error)
 {
-    mConfig.onError(error);
+    mConfig.logger->error(error.message());
 
     return tl::unexpected(std::move(error));
 }

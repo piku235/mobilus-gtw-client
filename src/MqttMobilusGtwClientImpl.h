@@ -103,7 +103,7 @@ private:
     void processQueuedMessages();
     void clearSession();
     void scheduleTimer();
-    tl::unexpected<Error> recordAndReturn(Error error);
+    tl::unexpected<Error> logAndReturn(Error error);
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     std::unique_ptr<crypto::Encryptor> encryptorFor(crypto::bytes key);
 };
