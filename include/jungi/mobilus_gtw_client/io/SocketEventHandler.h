@@ -2,8 +2,8 @@
 
 #include "SocketEvents.h"
 
-#include <cstdint>
 #include <chrono>
+#include <cstdint>
 
 namespace jungi::mobilus_gtw_client::io {
 

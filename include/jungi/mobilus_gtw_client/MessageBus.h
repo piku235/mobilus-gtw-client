@@ -42,7 +42,7 @@ private:
     {
         auto& subscribers = mSubscribers[messageType];
 
-        for (auto& subscriber: subscribers) {
+        for (auto& subscriber : subscribers) {
             subscriber(message);
         }
     }

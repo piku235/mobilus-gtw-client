@@ -9,7 +9,7 @@
 
 namespace mobcli::commands {
 
-namespace mobgtw = jungi::mobilus_gtw_client; 
+namespace mobgtw = jungi::mobilus_gtw_client;
 
 class ClientCommonCommand : public Command {
 protected:

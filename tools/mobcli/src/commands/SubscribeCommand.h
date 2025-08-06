@@ -5,7 +5,7 @@
 #include <cxxopts.hpp>
 
 namespace jungi::mobilus_gtw_client::proto {
-    class CallEvents;
+class CallEvents;
 }
 
 namespace mobcli::commands {

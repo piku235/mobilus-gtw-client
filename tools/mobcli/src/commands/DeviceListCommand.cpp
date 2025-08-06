@@ -31,7 +31,7 @@ int DeviceListCommand::execute(int argc, char* argv[])
     }
 
     proto::DevicesListResponse response;
-        
+
     if (!client->sendRequest(proto::DevicesListRequest(), response)) {
         return 1;
     }

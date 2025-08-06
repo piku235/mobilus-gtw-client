@@ -1,5 +1,5 @@
-#include "Utils.h"
 #include "SessionCommand.h"
+#include "Utils.h"
 
 #include <cstdint>
 #include <iostream>

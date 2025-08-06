@@ -2,8 +2,8 @@
 
 #include "ClientCommonCommand.h"
 
-#include <google/protobuf/repeated_field.h>
 #include <cxxopts.hpp>
+#include <google/protobuf/repeated_field.h>
 
 namespace mobcli::commands {
 

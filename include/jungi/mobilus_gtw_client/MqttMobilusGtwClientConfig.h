@@ -1,17 +1,17 @@
 #pragma once
 
-#include "Error.h"
 #include "Envelope.h"
+#include "Error.h"
 #include "io/NullClientWatcher.h"
 #include "logging/NullLogger.h"
 
 #include <google/protobuf/message_lite.h>
 
 #include <cstdint>
-#include <string>
+#include <functional>
 #include <memory>
 #include <optional>
-#include <functional>
+#include <string>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -29,8 +29,8 @@ struct MqttMobilusGtwClientConfig final {
     logging::Logger* logger = &logging::NullLogger::instance();
 
     /** hooks **/
-    SessionExpiringCallback onSessionExpiring = [](int) {};
-    RawMessageCallback onRawMessage = [](const Envelope&) {};
+    SessionExpiringCallback onSessionExpiring = [](int) { };
+    RawMessageCallback onRawMessage = [](const Envelope&) { };
 
     MqttMobilusGtwClientConfig(std::string aHost, uint32_t aPort, std::string aUsername, std::string aPassword, std::optional<std::string> aCafile = std::nullopt)
         : host(std::move(aHost))

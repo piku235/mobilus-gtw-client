@@ -29,7 +29,7 @@ int NetworkSettingsCommand::execute(int argc, char* argv[])
     if (!client->connect()) {
         return 1;
     }
-    
+
     proto::NetworkSettingsResponse response;
     proto::NetworkSettingsRequest request;
 

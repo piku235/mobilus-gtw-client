@@ -23,7 +23,11 @@ private:
     /* const */ ErrorCode mCode;
     /* const */ std::string mMessage;
 
-    Error(ErrorCode code, std::string message): mCode(code), mMessage(std::move(message)) {}
+    Error(ErrorCode code, std::string message)
+        : mCode(code)
+        , mMessage(std::move(message))
+    {
+    }
 };
 
 }

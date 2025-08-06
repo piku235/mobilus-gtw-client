@@ -13,11 +13,11 @@ public:
         return clientWatcher;
     }
 
-    void watchTimer(TimerEventHandler*, std::chrono::milliseconds) override {}
-    void unwatchTimer(TimerEventHandler*) override {}
+    void watchTimer(TimerEventHandler*, std::chrono::milliseconds) override { }
+    void unwatchTimer(TimerEventHandler*) override { }
 
-    void watchSocket(SocketEventHandler*, int) override {}
-    void unwatchSocket(SocketEventHandler*, int) override {}
+    void watchSocket(SocketEventHandler*, int) override { }
+    void unwatchSocket(SocketEventHandler*, int) override { }
 };
 
 }

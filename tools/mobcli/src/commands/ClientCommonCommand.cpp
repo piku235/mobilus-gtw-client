@@ -1,8 +1,8 @@
-#include "config.h"
-#include "Utils.h"
 #include "ClientCommonCommand.h"
-#include "mobilus_gtw_client/StderrLogger.h"
+#include "Utils.h"
+#include "config.h"
 #include "jungi/mobilus_gtw_client/proto/DeviceSettingsRequest.pb.h"
+#include "mobilus_gtw_client/StderrLogger.h"
 
 #include <iostream>
 
@@ -44,7 +44,7 @@ std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(
     static StderrLogger logger;
 
     MqttMobilusGtwClientConfig config(r["host"].as<std::string>(), kMobilusMqttPort, r["username"].as<std::string>(), r["password"].as<std::string>(), ::kMobilusCaFile);
-    
+
     config.keepAliveMessage = std::make_unique<proto::DeviceSettingsRequest>();
     config.logger = &logger;
 

@@ -13,8 +13,7 @@ uint32_t Envelope::size() const
         + clientId.size()
         + sizeof(platform)
         + sizeof(responseStatus)
-        + messageBody.size()
-    );
+        + messageBody.size());
 }
 
 std::optional<Envelope> Envelope::deserialize(const uint8_t* payload, uint32_t size)

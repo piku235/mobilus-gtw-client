@@ -17,6 +17,7 @@ public:
 
     void watchSocket(SocketEventHandler* handler, int socketFd) override;
     void unwatchSocket(SocketEventHandler* handler, int socketFd) override;
+
 private:
     SocketEventHandler* mSocketEventHandler = nullptr;
     TimerEventHandler* mTimerEventHandler = nullptr;

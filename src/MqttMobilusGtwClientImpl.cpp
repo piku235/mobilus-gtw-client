@@ -31,7 +31,7 @@ MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(Config config)
 
 MqttMobilusGtwClientImpl::~MqttMobilusGtwClientImpl()
 {
-    (void) disconnect();
+    (void)disconnect();
 
     if (nullptr != mMosq) {
         mosquitto_destroy(mMosq);
@@ -83,7 +83,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     if (MOSQ_ERR_SUCCESS != rc) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
-        
+
         return logAndReturn(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
@@ -153,7 +153,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
 
     SelectCondition cond(*this, mosquitto_socket(mMosq));
     ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response };
-    
+
     mExpectedMessage = &expectedMessage;
     cond.wait();
     mExpectedMessage = nullptr;
@@ -287,7 +287,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
         std::move(privateKey),
         response.serial_number(),
     };
-    
+
     return {};
 }
 
@@ -413,7 +413,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
     auto& event = callEvents.events(0);
 
     if (!event.value().compare("EXPIRED")) {
-        (void) login();
+        (void)login();
         return;
     }
 
@@ -424,7 +424,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
         mConfig.onSessionExpiring(remaningTime);
 
         if (mConfig.keepAliveMessage) {
-            (void) send(*mConfig.keepAliveMessage);
+            (void)send(*mConfig.keepAliveMessage);
         }
     }
 }
@@ -434,7 +434,7 @@ void MqttMobilusGtwClientImpl::processError(const Error& error)
     mConfig.logger->error(error.message());
 
     if (ErrorCode::AuthenticationFailed == error.code()) {
-        (void) login();
+        (void)login();
     }
 }
 

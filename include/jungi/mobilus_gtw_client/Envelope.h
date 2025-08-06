@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <array>
-#include <vector>
+#include <cstdint>
 #include <optional>
+#include <vector>
 
 namespace jungi::mobilus_gtw_client {
 

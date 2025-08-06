@@ -2,8 +2,8 @@
 #include "jungi/mobilus_gtw_client/io/SocketEvents.h"
 
 #include <chrono>
-#include <thread>
 #include <sys/select.h>
+#include <thread>
 
 using std::chrono::steady_clock;
 
@@ -27,7 +27,7 @@ void BlockingClientWatcher::loop()
 
     fd_set readFds;
     fd_set writeFds;
-    
+
     while (nullptr != mTimerEventHandler || nullptr != mSocketEventHandler) {
         if (nullptr != mTimerEventHandler && steady_clock::now() - lastTimerAt >= mTimerDelay) {
             mTimerEventHandler->handleTimerEvent();
@@ -100,7 +100,7 @@ void BlockingClientWatcher::watchSocket(SocketEventHandler* handler, int socketF
     mSocketEventHandler = handler;
     mSocketFd = socketFd;
 }
-    
+
 void BlockingClientWatcher::unwatchSocket(SocketEventHandler* handler, int)
 {
     if (mSocketEventHandler != handler) {
