@@ -57,7 +57,6 @@ std::optional<Envelope> Envelope::deserialize(const uint8_t* payload, uint32_t s
 
     envelope.messageBody.resize(messageSize - envelope.size());
     memcpy(envelope.messageBody.data(), offset, envelope.messageBody.size());
-    offset += envelope.messageBody.size();
 
     return envelope;
 }
@@ -89,7 +88,6 @@ std::vector<uint8_t> Envelope::serialize() const
     offset += sizeof(responseStatus);
 
     memcpy(offset, messageBody.data(), messageBody.size());
-    offset += messageBody.size();
 
     return payload;
 }
