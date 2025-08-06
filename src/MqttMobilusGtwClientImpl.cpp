@@ -39,7 +39,7 @@ MqttMobilusGtwClientImpl::~MqttMobilusGtwClientImpl()
     }
 }
 
-tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
 {
     int rc;
 
@@ -100,7 +100,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::connect()
     return {};
 }
 
-tl::expected<void, Error> MqttMobilusGtwClientImpl::disconnect()
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::disconnect()
 {
     clearSession();
 
@@ -119,7 +119,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::disconnect()
     return {};
 }
 
-tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
 {
     if (!mConnected) {
         return logAndReturn(Error::NoConnection("Not connected"));
@@ -145,7 +145,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::send(const google::protobuf:
     return {};
 }
 
-tl::expected<void, Error> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
 {
     if (auto e = send(request); !e) {
         return e;
@@ -162,7 +162,7 @@ tl::expected<void, Error> MqttMobilusGtwClientImpl::sendRequest(const google::pr
         return {};
     }
 
-    if (Error::Code::AuthenticationFailed == expectedMessage.error->code()) {
+    if (ErrorCode::AuthenticationFailed == expectedMessage.error->code()) {
         if (auto e = login(); !e) {
             return e;
         }
@@ -256,7 +256,7 @@ void MqttMobilusGtwClientImpl::onMessageCallback(mosquitto*, void* obj, const mo
     self->onMessage(mosqMessage);
 }
 
-tl::expected<void, Error> MqttMobilusGtwClientImpl::login()
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
 {
     proto::LoginRequest request;
     proto::LoginResponse response;
@@ -433,7 +433,7 @@ void MqttMobilusGtwClientImpl::processError(const Error& error)
 {
     mConfig.logger->error(error.message());
 
-    if (Error::Code::AuthenticationFailed == error.code()) {
+    if (ErrorCode::AuthenticationFailed == error.code()) {
         (void) login();
     }
 }

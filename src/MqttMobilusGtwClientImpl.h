@@ -33,10 +33,10 @@ public:
     MqttMobilusGtwClientImpl(Config config);
     ~MqttMobilusGtwClientImpl();
 
-    tl::expected<void, Error> connect() override;
-    tl::expected<void, Error> disconnect() override;
-    tl::expected<void, Error> send(const google::protobuf::MessageLite& message) override;
-    tl::expected<void, Error> sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response) override;
+    Result<> connect() override;
+    Result<> disconnect() override;
+    Result<> send(const google::protobuf::MessageLite& message) override;
+    Result<> sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response) override;
 
     MessageBus& messageBus() override { return mMessageBus; }
     const std::optional<SessionInformation>& sessionInfo() const override { return mSessionInfo; }
