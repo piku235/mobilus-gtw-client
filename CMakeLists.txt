@@ -18,11 +18,13 @@ pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 include(FetchContent)
 
 FetchContent_Declare(
-  tl-expected
+  tl_expected
   GIT_REPOSITORY https://github.com/TartanLlama/expected.git
   GIT_TAG v1.2.0
 )
-FetchContent_MakeAvailable(tl-expected)
+
+set(EXPECTED_BUILD_TESTS OFF)
+FetchContent_MakeAvailable(tl_expected)
 
 add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
@@ -58,6 +60,7 @@ set_target_properties(mobilus_gtw_client PROPERTIES OUTPUT_NAME "mobgtw")
 
 target_link_libraries(mobilus_gtw_client
   PUBLIC
+    expected
     protos
   PRIVATE
     common_compiler_warnings
@@ -69,7 +72,6 @@ target_link_libraries(mobilus_gtw_client
 target_include_directories(mobilus_gtw_client
   PUBLIC
     include
-    ${tl-expected_SOURCE_DIR}/include
   PRIVATE
     src
 )
