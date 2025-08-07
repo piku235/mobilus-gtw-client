@@ -5,17 +5,6 @@
 
 namespace jungi::mobilus_gtw_client {
 
-uint32_t Envelope::size() const
-{
-    return static_cast<uint32_t>(
-        sizeof(messageType)
-        + sizeof(timestamp)
-        + clientId.size()
-        + sizeof(platform)
-        + sizeof(responseStatus)
-        + messageBody.size());
-}
-
 std::optional<Envelope> Envelope::deserialize(const uint8_t* payload, uint32_t size)
 {
     Envelope envelope;
@@ -89,6 +78,27 @@ std::vector<uint8_t> Envelope::serialize() const
     memcpy(offset, messageBody.data(), messageBody.size());
 
     return payload;
+}
+
+uint32_t Envelope::size() const
+{
+    return static_cast<uint32_t>(
+        sizeof(messageType)
+        + sizeof(timestamp)
+        + clientId.size()
+        + sizeof(platform)
+        + sizeof(responseStatus)
+        + messageBody.size());
+}
+
+bool Envelope::operator==(const Envelope& other) const
+{
+    return messageType == other.messageType
+        && timestamp == other.timestamp
+        && clientId == other.clientId
+        && platform == other.platform
+        && responseStatus == other.responseStatus
+        && messageBody == other.messageBody;
 }
 
 }

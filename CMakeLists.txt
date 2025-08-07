@@ -16,6 +16,7 @@ find_package(OpenSSL REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 
 include(FetchContent)
+include(CTest)
 
 FetchContent_Declare(
   tl_expected
@@ -29,6 +30,10 @@ FetchContent_MakeAvailable(tl_expected)
 add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
+
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
 
 if(BUILD_MOBCLI)
   add_subdirectory(tools/mobcli)

@@ -24,6 +24,7 @@ struct Envelope final {
     std::vector<uint8_t> serialize() const;
 
     uint32_t size() const;
+    bool operator==(const Envelope& other) const;
 };
 
 }
