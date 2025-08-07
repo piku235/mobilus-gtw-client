@@ -9,7 +9,7 @@ ExternalProject_Add(
     autoreconf -f -i -Wall,no-obsolete &&
     ./configure --with-pic --disable-shared --enable-static --prefix=${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE 1
-  BUILD_COMMAND make -j12
+  BUILD_COMMAND make CXXFLAGS=-w -j$(nproc)
   INSTALL_COMMAND make install
   BUILD_BYPRODUCTS
     "${CMAKE_BINARY_DIR}/lib/libprotobuf-lite.a"
