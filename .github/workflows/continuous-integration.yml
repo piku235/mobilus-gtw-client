@@ -33,6 +33,9 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y libmosquitto-dev libssl-dev
+
     - name: Configure CMake
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
