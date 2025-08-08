@@ -1,4 +1,4 @@
-# C++ Client Library for Mobilus Cosmo GTW
+# 📙 C++ Client Library for Mobilus Cosmo GTW
 
 A lightweight, platform-agnostic C++ client library for interacting with the **Mobilus Cosmo GTW**.
 Designed to facilitate communication, control, and event subscription of Mobilus devices connected to the Cosmo GTW.
@@ -15,10 +15,10 @@ Use this client to:
 
 ## Requirements
 
-- C++17 compatible compiler (GCC 8+, Clang 7+, MSVC 2019+)
-- Mobilus Cosmo GTW firmware version >= 0.1.7.8
-- OpenSSL library
-- Mosquitto library
+- C++17 compatible compiler (GCC 8+, Clang 7+)
+- Mobilus Cosmo GTW firmware version ≥ 0.1.7.8
+- OpenSSL v3
+- Mosquitto v2.x (v1.x optionally supported)
 - Google Protocol Buffers (protobuf) v2.6.1 (included)
 
 ## Limitations
