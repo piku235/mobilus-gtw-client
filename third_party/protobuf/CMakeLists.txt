@@ -4,8 +4,7 @@ ProcessorCount(NCPU)
 
 ExternalProject_Add(
   protobuf_build
-  GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
-  GIT_TAG v2.6.1
+  URL https://github.com/protocolbuffers/protobuf/archive/refs/tags/v2.6.1.zip
   UPDATE_DISCONNECTED 1
   CONFIGURE_COMMAND
     autoreconf -f -i -Wall,no-obsolete &&

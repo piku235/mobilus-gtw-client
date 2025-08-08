@@ -20,8 +20,7 @@ include(CTest)
 
 FetchContent_Declare(
   tl_expected
-  GIT_REPOSITORY https://github.com/TartanLlama/expected.git
-  GIT_TAG v1.2.0
+  URL https://github.com/TartanLlama/expected/archive/refs/tags/v1.2.0.zip
 )
 
 set(EXPECTED_BUILD_TESTS OFF)
