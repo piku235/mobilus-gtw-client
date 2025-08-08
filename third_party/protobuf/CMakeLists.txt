@@ -1,4 +1,6 @@
 include(ExternalProject)
+include(ProcessorCount)
+ProcessorCount(NCPU)
 
 ExternalProject_Add(
   protobuf_build
@@ -9,7 +11,7 @@ ExternalProject_Add(
     autoreconf -f -i -Wall,no-obsolete &&
     ./configure --with-pic --disable-shared --enable-static --prefix=${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE 1
-  BUILD_COMMAND make CXXFLAGS=-w -j$(nproc)
+  BUILD_COMMAND make CXXFLAGS=-w -j${NCPU}
   INSTALL_COMMAND make install
   BUILD_BYPRODUCTS
     "${CMAKE_BINARY_DIR}/lib/libprotobuf-lite.a"

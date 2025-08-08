@@ -1,21 +1,21 @@
 include(FetchContent)
 
 FetchContent_Declare(
-  catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG v3.9.0
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
 )
-FetchContent_MakeAvailable(catch2)
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS *.cpp)
 add_executable(tests ${TEST_SOURCES})
 
 target_link_libraries(tests
   PRIVATE
-    Catch2::Catch2WithMain
     mobilus_gtw_client
+    GTest::gtest_main
 )
 
-list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
-include(Catch)
-catch_discover_tests(tests)
+include(GoogleTest)
+gtest_discover_tests(tests)
