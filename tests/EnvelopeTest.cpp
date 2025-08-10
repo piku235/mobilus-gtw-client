@@ -77,7 +77,7 @@ TEST(EnvelopeTest, DeserializeFailsForTooSmallPayload)
     EXPECT_FALSE(deserialized.has_value());
 }
 
-TEST(EnvelopeTest, eserializeFailsDueToSizeMismatch)
+TEST(EnvelopeTest, DeserializeFailsDueToSizeMismatch)
 {
     uint8_t payload[sizeof(uint32_t)];
     uint32_t messageSize = htonl(123);
