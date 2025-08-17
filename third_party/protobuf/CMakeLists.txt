@@ -10,6 +10,7 @@ ExternalProject_Add(
     autoreconf -f -i -Wall,no-obsolete &&
     ./configure --with-pic --disable-shared --enable-static --prefix=${CMAKE_BINARY_DIR}
   BUILD_IN_SOURCE 1
+  BUILD_ALWAYS 0
   BUILD_COMMAND make CXXFLAGS=-w -j${NCPU}
   INSTALL_COMMAND make install
   BUILD_BYPRODUCTS

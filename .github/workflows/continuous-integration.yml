@@ -50,6 +50,12 @@ jobs:
         key: ${{ runner.os }}-protoc
         path: ${{ steps.strings.outputs.build-output-dir }}/bin/protoc
 
+    - name: Cache libprotobuf-lite
+      uses: actions/cache@v4
+      with:
+        key: ${{ runner.os }}-libprotobuf-lite
+        path: ${{ steps.strings.outputs.build-output-dir }}/lib/libprotobuf-lite.a
+
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }}
 
