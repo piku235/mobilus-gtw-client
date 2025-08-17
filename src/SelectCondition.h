@@ -8,8 +8,9 @@ class SelectCondition final {
 public:
     explicit SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd);
 
-    void notify();
     void wait();
+    void notify() { mCondition = true; }
+    bool condition() const { return mCondition; }
 
 private:
     io::SocketEventHandler& mSocketEventHandler;

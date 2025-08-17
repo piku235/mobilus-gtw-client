@@ -12,17 +12,14 @@ SelectCondition::SelectCondition(io::SocketEventHandler& socketEventHandler, int
 {
 }
 
-void SelectCondition::notify()
-{
-    mCondition = true;
-}
-
 void SelectCondition::wait()
 {
     timeval timeout = { kWaitTimeSecs, 0 };
 
     fd_set readFds;
     fd_set writeFds;
+
+    mCondition = false;
 
     while (!mCondition && (timeout.tv_sec > 0 || timeout.tv_usec > 0)) {
         FD_ZERO(&readFds);

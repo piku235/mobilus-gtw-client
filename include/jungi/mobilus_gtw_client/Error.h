@@ -14,6 +14,7 @@ public:
     static Error UnexpectedMessage(std::string message) { return { ErrorCode::UnexpectedMessage, std::move(message) }; }
     static Error Transport(std::string message) { return { ErrorCode::Transport, std::move(message) }; }
     static Error NoConnection(std::string message) { return { ErrorCode::NoConnection, std::move(message) }; }
+    static Error Timeout(std::string message) { return { ErrorCode::Timeout, std::move(message) }; }
     static Error Unknown(std::string message) { return { ErrorCode::Unknown, std::move(message) }; }
 
     ErrorCode code() const { return mCode; }

@@ -158,19 +158,16 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
     cond.wait();
     mExpectedMessage = nullptr;
 
-    if (!expectedMessage.error) {
-        return {};
+    // timeout
+    if (!cond.condition()) {
+        return logAndReturn(Error::Timeout("Request timed out after waiting for a response"));
     }
 
-    if (ErrorCode::AuthenticationFailed == expectedMessage.error->code()) {
-        if (auto e = login(); !e) {
-            return e;
-        }
-
-        return sendRequest(request, response);
+    if (expectedMessage.error) {
+        return logAndReturn(std::move(*expectedMessage.error));
     }
 
-    return logAndReturn(std::move(*expectedMessage.error));
+    return {};
 }
 
 io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
@@ -536,13 +533,6 @@ void MqttMobilusGtwClientImpl::clearSession()
 void MqttMobilusGtwClientImpl::scheduleTimer()
 {
     mConfig.clientWatcher->watchTimer(this, std::chrono::seconds(1)); // due to mosquitto_loop_misc() PINGREQ
-}
-
-tl::unexpected<Error> MqttMobilusGtwClientImpl::logAndReturn(Error error)
-{
-    mConfig.logger->error(error.message());
-
-    return tl::unexpected(std::move(error));
 }
 
 Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLite& message)
