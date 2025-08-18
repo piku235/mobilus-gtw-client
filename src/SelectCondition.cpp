@@ -4,7 +4,7 @@
 
 namespace jungi::mobilus_gtw_client {
 
-static constexpr uint16_t kWaitTimeSecs = 10;
+static constexpr uint16_t kWaitTimeSecs = 5;
 
 SelectCondition::SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd)
     : mSocketEventHandler(socketEventHandler)
