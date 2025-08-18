@@ -6,7 +6,7 @@ namespace jungi::mobilus_gtw_client {
 
 class SelectCondition final {
 public:
-    explicit SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd);
+    SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd);
 
     void wait();
     void notify() { mCondition = true; }
