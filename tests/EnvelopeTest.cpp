@@ -24,7 +24,7 @@ Envelope envelopeStub()
 
 TEST(EnvelopeTest, Equals)
 {
-    EXPECT_EQ(envelopeStub(), envelopeStub());
+    ASSERT_EQ(envelopeStub(), envelopeStub());
 }
 
 TEST(EnvelopeTest, DoesNotEqual)
@@ -38,8 +38,8 @@ TEST(EnvelopeTest, DoesNotEqual)
     };
 
     for (auto& other : otherEnvelops) {
-        EXPECT_FALSE(envelope == other);
-        EXPECT_FALSE(other == envelope);
+        ASSERT_FALSE(envelope == other);
+        ASSERT_FALSE(other == envelope);
     }
 }
 
@@ -47,14 +47,14 @@ TEST(EnvelopeTest, SizeForEmptyEnvelope)
 {
     Envelope envelope;
 
-    EXPECT_EQ(13, envelope.size());
+    ASSERT_EQ(13, envelope.size());
 }
 
 TEST(EnvelopeTest, SizeForEnvelopeWithBody)
 {
     Envelope envelope = envelopeStub();
 
-    EXPECT_EQ(16, envelope.size());
+    ASSERT_EQ(16, envelope.size());
 }
 
 TEST(EnvelopeTest, SerializesAndDeserializes)
@@ -64,9 +64,9 @@ TEST(EnvelopeTest, SerializesAndDeserializes)
     auto serialized = envelope.serialize();
     auto deserialized = Envelope::deserialize(serialized.data(), serialized.size());
 
-    EXPECT_EQ(envelope.size() + sizeof(uint32_t), serialized.size()); // sizeof(uint32_t) - extra space for message size
-    EXPECT_TRUE(deserialized.has_value());
-    EXPECT_EQ(envelope, *deserialized);
+    ASSERT_EQ(envelope.size() + sizeof(uint32_t), serialized.size()); // sizeof(uint32_t) - extra space for message size
+    ASSERT_TRUE(deserialized.has_value());
+    ASSERT_EQ(envelope, *deserialized);
 }
 
 TEST(EnvelopeTest, DeserializeFailsForTooSmallPayload)
@@ -74,7 +74,7 @@ TEST(EnvelopeTest, DeserializeFailsForTooSmallPayload)
     uint8_t payload[] = { 0x11, 0x12, 0x13 };
     auto deserialized = Envelope::deserialize(payload, sizeof(payload));
 
-    EXPECT_FALSE(deserialized.has_value());
+    ASSERT_FALSE(deserialized.has_value());
 }
 
 TEST(EnvelopeTest, DeserializeFailsDueToSizeMismatch)
@@ -85,5 +85,5 @@ TEST(EnvelopeTest, DeserializeFailsDueToSizeMismatch)
 
     auto deserialized = Envelope::deserialize(payload, sizeof(payload));
 
-    EXPECT_FALSE(deserialized.has_value());
+    ASSERT_FALSE(deserialized.has_value());
 }
