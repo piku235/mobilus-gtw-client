@@ -8,11 +8,21 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS *.cpp)
+add_subdirectory(io)
+add_subdirectory(mocks)
+
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS *Test.cpp)
 add_executable(tests ${TEST_SOURCES})
+
+target_include_directories(tests
+  PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+)
 
 target_link_libraries(tests
   PRIVATE
+    io
+    mocks
     mobilus_gtw_client
     GTest::gtest_main
 )

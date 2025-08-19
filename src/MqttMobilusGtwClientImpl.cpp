@@ -265,7 +265,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
     mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
 
     if (auto e = sendRequest(request, response); !e) {
-        return e;
+        return logAndReturn(Error::AuthenticationFailed("Login request has failed: " + e.error().message()));
     }
 
     if (0 != response.login_status()) {
