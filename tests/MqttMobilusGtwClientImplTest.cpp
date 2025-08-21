@@ -11,19 +11,47 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <thread>
 #include <vector>
 
 using namespace jungi::mobilus_gtw_client;
 using jungi::mobilus_gtw_client::tests::io::TestSocketWatcher;
 using jungi::mobilus_gtw_client::tests::mocks::MockMqttMobilusActor;
 
+namespace {
+
 auto clientConfig()
 {
     MqttMobilusGtwClientConfig config("localhost", 1883, "admin", "admin");
-    config.responseTimeoutMs = 1000; // 1 sec
+    config.responseTimeoutMs = 100; // 1 sec
 
     return config;
+}
+
+void fakeMqttBroker(std::condition_variable* cv, std::mutex* mutex, bool* ready)
+{
+    sockaddr_in saddr;
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(2883);
+    saddr.sin_addr.s_addr = INADDR_ANY;
+
+    int serverFd = socket(AF_INET, SOCK_STREAM, 0);
+    bind(serverFd, reinterpret_cast<sockaddr*>(&saddr), sizeof(saddr));
+    listen(serverFd, 1);
+    int clientFd = accept(serverFd, nullptr, nullptr);
+
+    std::unique_lock<std::mutex> lock(*mutex);
+    cv->wait(lock, [&]() -> bool { return ready; });
+
+    close(clientFd);
+    close(serverFd);
+}
+
 }
 
 TEST(MqttMobilusGtwClientImplTest, Connects)
@@ -37,6 +65,31 @@ TEST(MqttMobilusGtwClientImplTest, Connects)
     ASSERT_TRUE(r.has_value());
 }
 
+TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
+{
+    bool ready = false;
+    std::mutex mutex;
+    std::condition_variable cv;
+
+    MqttMobilusGtwClientImpl client({ "localhost", 2883, "admin", "admin" });
+    std::thread fakeBroker(fakeMqttBroker, &cv, &mutex, &ready);
+
+    std::unique_lock<std::mutex> lock(mutex);
+    auto r = client.connect();
+
+    ready = true;
+    lock.unlock();
+    cv.notify_one();
+
+    if (fakeBroker.joinable()) {
+        fakeBroker.join();
+    }
+
+    ASSERT_FALSE(r.has_value());
+    ASSERT_EQ(ErrorCode::Transport, r.error().code());
+    ASSERT_EQ("MQTT connection timeout", r.error().message());
+}
+
 TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
 {
     auto config = clientConfig();
@@ -48,6 +101,7 @@ TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
 
     ASSERT_FALSE(r.has_value());
     ASSERT_EQ(ErrorCode::AuthenticationFailed, r.error().code());
+    ASSERT_EQ("Login request has failed: Request timed out after waiting for a response", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, AuthenticationFailed)
@@ -60,6 +114,7 @@ TEST(MqttMobilusGtwClientImplTest, AuthenticationFailed)
 
     ASSERT_FALSE(r.has_value());
     ASSERT_EQ(ErrorCode::AuthenticationFailed, r.error().code());
+    ASSERT_EQ("Mobilus authentication has failed, possibly wrong credentials provided", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, HostCannotBeResolved)
@@ -72,6 +127,7 @@ TEST(MqttMobilusGtwClientImplTest, HostCannotBeResolved)
 
     ASSERT_FALSE(r.has_value());
     ASSERT_EQ(ErrorCode::Transport, r.error().code());
+    ASSERT_EQ("MQTT connection failed: Network is unreachable", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, InvalidPort)
@@ -84,6 +140,7 @@ TEST(MqttMobilusGtwClientImplTest, InvalidPort)
 
     ASSERT_FALSE(r.has_value());
     ASSERT_EQ(ErrorCode::Transport, r.error().code());
+    ASSERT_EQ("MQTT connection failed: Connection refused", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
@@ -136,14 +193,12 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 
     ASSERT_FALSE(r.has_value());
     ASSERT_EQ(ErrorCode::UnexpectedMessage, r.error().code());
+    ASSERT_EQ("Expected to get message of code: 4 but got: 27", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestTimeouts)
 {
-    auto config = clientConfig();
-    config.responseTimeoutMs = 100;
-
-    MqttMobilusGtwClientImpl client(std::move(config));
+    MqttMobilusGtwClientImpl client(clientConfig());
     MockMqttMobilusActor mobilusActor("localhost", 1883);
     mobilusActor.run();
 
@@ -154,6 +209,7 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestTimeouts)
 
     ASSERT_FALSE(r.has_value());
     ASSERT_EQ(ErrorCode::Timeout, r.error().code());
+    ASSERT_EQ("Request timed out after waiting for a response", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)

@@ -383,7 +383,7 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
     }
 
     if (envelope->messageType != expectedMessage.expectedMessageType) {
-        expectedMessage.error = Error::UnexpectedMessage("Expected to get message: " + std::to_string(expectedMessage.expectedMessageType) + " but got: " + std::to_string(envelope->messageType));
+        expectedMessage.error = Error::UnexpectedMessage("Expected to get message of code: " + std::to_string(expectedMessage.expectedMessageType) + " but got: " + std::to_string(envelope->messageType));
         cond.notify();
 
         return;
