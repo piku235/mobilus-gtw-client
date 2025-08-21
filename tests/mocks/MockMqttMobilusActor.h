@@ -19,9 +19,9 @@ public:
     ~MockMqttMobilusActor();
 
     void mockResponseFor(uint8_t requestType, std::unique_ptr<const google::protobuf::MessageLite> response);
-    void mockCallEvents();
     void run();
     void stop();
+
     bool isRunning() const;
 
 private:

@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <chrono>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -27,6 +28,7 @@ struct MqttMobilusGtwClientConfig final {
     std::unique_ptr<google::protobuf::MessageLite> keepAliveMessage;
     io::ClientWatcher* clientWatcher = &io::NullClientWatcher::instance();
     logging::Logger* logger = &logging::NullLogger::instance();
+    uint32_t responseTimeoutMs = 5000u; // 5 secs
 
     /** hooks **/
     SessionExpiringCallback onSessionExpiring = [](int) { };

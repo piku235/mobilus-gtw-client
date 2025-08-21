@@ -18,9 +18,17 @@ using namespace jungi::mobilus_gtw_client;
 using jungi::mobilus_gtw_client::tests::io::TestSocketWatcher;
 using jungi::mobilus_gtw_client::tests::mocks::MockMqttMobilusActor;
 
+auto clientConfig()
+{
+    MqttMobilusGtwClientConfig config("localhost", 1883, "admin", "admin");
+    config.responseTimeoutMs = 1000; // 1 sec
+
+    return config;
+}
+
 TEST(MqttMobilusGtwClientImplTest, Connects)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "admin" });
+    MqttMobilusGtwClientImpl client(clientConfig());
     MockMqttMobilusActor mobilusActor("localhost", 1883);
     mobilusActor.run();
 
@@ -31,7 +39,10 @@ TEST(MqttMobilusGtwClientImplTest, Connects)
 
 TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "admin" });
+    auto config = clientConfig();
+    config.responseTimeoutMs = 1;
+
+    MqttMobilusGtwClientImpl client(std::move(config));
 
     auto r = client.connect();
 
@@ -77,7 +88,7 @@ TEST(MqttMobilusGtwClientImplTest, InvalidPort)
 
 TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "admin" });
+    MqttMobilusGtwClientImpl client(clientConfig());
     MockMqttMobilusActor mobilusActor("localhost", 1883);
     mobilusActor.run();
 
@@ -88,7 +99,7 @@ TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
 
 TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "admin" });
+    MqttMobilusGtwClientImpl client(clientConfig());
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     proto::DevicesListResponse expectedResponse;
@@ -112,7 +123,7 @@ TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "admin" });
+    MqttMobilusGtwClientImpl client(clientConfig());
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::CurrentStateResponse>());
@@ -129,7 +140,10 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestTimeouts)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "admin" });
+    auto config = clientConfig();
+    config.responseTimeoutMs = 1;
+
+    MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
     mobilusActor.run();
 
@@ -145,7 +159,7 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestTimeouts)
 TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
 {
     TestSocketWatcher clientWatcher;
-    MqttMobilusGtwClientConfig config = { "localhost", 1883, "admin", "admin" };
+    MqttMobilusGtwClientConfig config = clientConfig();
     config.clientWatcher = &clientWatcher;
 
     MqttMobilusGtwClientImpl client(std::move(config));
@@ -171,7 +185,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
     ASSERT_TRUE(client.connect());
     ASSERT_TRUE(client.send(proto::CallEvents()));
 
-    clientWatcher.loopFor(std::chrono::seconds(1));
+    clientWatcher.loopFor(std::chrono::milliseconds(100));
 
     ASSERT_EQ(actualCallEvents.SerializeAsString(), expectedCallEvents.SerializeAsString());
 }
@@ -179,7 +193,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
 TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 {
     TestSocketWatcher clientWatcher;
-    MqttMobilusGtwClientConfig config = { "localhost", 1883, "admin", "admin" };
+    MqttMobilusGtwClientConfig config = clientConfig();
     config.clientWatcher = &clientWatcher;
 
     MqttMobilusGtwClientImpl client(std::move(config));
@@ -216,7 +230,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
     ASSERT_TRUE(client.send(proto::CallEvents()));
     ASSERT_TRUE(client.send(proto::DevicesListRequest()));
 
-    clientWatcher.loopFor(std::chrono::seconds(1));
+    clientWatcher.loopFor(std::chrono::milliseconds(100));
 
     ASSERT_EQ(2, subscribedMessages.size());
     ASSERT_EQ(expectedCallEvents.SerializeAsString(), subscribedMessages[0]->SerializeAsString());

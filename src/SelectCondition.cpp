@@ -1,20 +1,20 @@
 #include "SelectCondition.h"
+#include "TimeUtils.h"
 
 #include <sys/select.h>
 
 namespace jungi::mobilus_gtw_client {
 
-static constexpr uint16_t kWaitTimeSecs = 5;
-
-SelectCondition::SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd)
+SelectCondition::SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd, uint32_t timeoutMs)
     : mSocketEventHandler(socketEventHandler)
     , mSocketFd(socketFd)
+    , mTimeoutMs(timeoutMs)
 {
 }
 
 void SelectCondition::wait()
 {
-    timeval timeout = { kWaitTimeSecs, 0 };
+    auto timeout = TimeUtils::milisecondsToTimeval(mTimeoutMs);
 
     fd_set readFds;
     fd_set writeFds;

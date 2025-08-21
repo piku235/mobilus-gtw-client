@@ -17,6 +17,7 @@
 static const char kEventsTopic[] = "clients";
 static const char kRequestsTopic[] = "module";
 static constexpr int kKeepAliveIntervalSecs = 60;
+static constexpr uint32_t kConnAckTimeoutMs = 1000; // 1 sec
 
 using std::chrono::steady_clock;
 
@@ -55,14 +56,16 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     mConnected = true;
     mConfig.clientWatcher->watchSocket(this, mosquitto_socket(mMosq));
 
-    SelectCondition cond(*this, mosquitto_socket(mMosq));
+    SelectCondition cond(*this, mosquitto_socket(mMosq), kConnAckTimeoutMs);
     ConnectCallbackContext connCallbackData = { cond, -1 };
 
     mosquitto_user_data_set(mMosq, &connCallbackData);
 
     cond.wait();
 
-    if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
+    if (!cond.condition()) {
+        return logAndReturn(Error::Transport("MQTT connection timeout"));
+    } else if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
         return logAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
@@ -151,14 +154,13 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
         return e;
     }
 
-    SelectCondition cond(*this, mosquitto_socket(mMosq));
+    SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.responseTimeoutMs);
     ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response };
 
     mExpectedMessage = &expectedMessage;
     cond.wait();
     mExpectedMessage = nullptr;
 
-    // timeout
     if (!cond.condition()) {
         return logAndReturn(Error::Timeout("Request timed out after waiting for a response"));
     }

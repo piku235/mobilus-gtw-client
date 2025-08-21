@@ -1,19 +1,12 @@
 #include "jungi/mobilus_gtw_client/io/BlockingClientWatcher.h"
 #include "jungi/mobilus_gtw_client/io/SocketEvents.h"
+#include "TimeUtils.h"
 
 #include <chrono>
 #include <sys/select.h>
 #include <thread>
 
 using std::chrono::steady_clock;
-
-static timeval convertToTimeval(std::chrono::milliseconds ms)
-{
-    return {
-        static_cast<time_t>(ms.count() / 1000),
-        static_cast<suseconds_t>((ms.count() % 1000) * 1000)
-    };
-}
 
 namespace jungi::mobilus_gtw_client::io {
 
@@ -52,7 +45,7 @@ void BlockingClientWatcher::loop()
             FD_SET(mSocketFd, &writeFds);
         }
 
-        auto timeout = convertToTimeval(mTimerDelay);
+        auto timeout = TimeUtils::milisecondsToTimeval(static_cast<uint64_t>(mTimerDelay.count()));
 
         if (select(mSocketFd + 1, &readFds, &writeFds, nullptr, &timeout) < 0) {
             return;
