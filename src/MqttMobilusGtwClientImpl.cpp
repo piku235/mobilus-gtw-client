@@ -124,33 +124,12 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::disconnect()
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
 {
-    if (!mConnected) {
-        return logAndReturn(Error::NoConnection("Not connected"));
-    }
-
-    Envelope envelope = envelopeFor(message);
-
-    if (MessageType::LoginRequest != envelope.messageType) {
-        if (!mPrivateEncryptor) {
-            return logAndReturn(Error::Unknown("Private key is missing which should not happen in this client state"));
-        }
-
-        envelope.messageBody = mPrivateEncryptor->encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
-    }
-
-    auto payload = envelope.serialize();
-    int rc = mosquitto_publish(mMosq, nullptr, kRequestsTopic, static_cast<int>(payload.size()), payload.data(), 0, false);
-
-    if (MOSQ_ERR_SUCCESS != rc) {
-        return logAndReturn(Error::Transport("MQTT publish failed: " + std::string(mosquitto_strerror(rc))));
-    }
-
-    return {};
+    return send(message, 0);
 }
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
 {
-    if (auto e = send(request); !e) {
+    if (auto e = send(request, 1); !e) {
         return e;
     }
 
@@ -253,6 +232,32 @@ void MqttMobilusGtwClientImpl::onMessageCallback(mosquitto*, void* obj, const mo
     }
 
     self->onMessage(mosqMessage);
+}
+
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message, int qos)
+{
+    if (!mConnected) {
+        return logAndReturn(Error::NoConnection("Not connected"));
+    }
+
+    Envelope envelope = envelopeFor(message);
+
+    if (MessageType::LoginRequest != envelope.messageType) {
+        if (!mPrivateEncryptor) {
+            return logAndReturn(Error::Unknown("Private key is missing which should not happen in this client state"));
+        }
+
+        envelope.messageBody = mPrivateEncryptor->encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+    }
+
+    auto payload = envelope.serialize();
+    int rc = mosquitto_publish(mMosq, nullptr, kRequestsTopic, static_cast<int>(payload.size()), payload.data(), qos, false);
+
+    if (MOSQ_ERR_SUCCESS != rc) {
+        return logAndReturn(Error::Transport("MQTT publish failed: " + std::string(mosquitto_strerror(rc))));
+    }
+
+    return {};
 }
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()

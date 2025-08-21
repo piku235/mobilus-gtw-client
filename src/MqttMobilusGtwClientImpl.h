@@ -93,7 +93,8 @@ private:
 
     int connectMqtt();
     void reconnect();
-    tl::expected<void, Error> login();
+    Result<> send(const google::protobuf::MessageLite& message, int qos);
+    Result<> login();
     void onMessage(const mosquitto_message* mosqMessage);
     void onGeneralMessage(const mosquitto_message* mosqMessage);
     void onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage);

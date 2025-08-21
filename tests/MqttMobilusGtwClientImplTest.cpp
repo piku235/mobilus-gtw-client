@@ -141,7 +141,7 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 TEST(MqttMobilusGtwClientImplTest, SendRequestTimeouts)
 {
     auto config = clientConfig();
-    config.responseTimeoutMs = 1;
+    config.responseTimeoutMs = 100;
 
     MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
