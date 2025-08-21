@@ -1,6 +1,6 @@
 #include "jungi/mobilus_gtw_client/io/BlockingClientWatcher.h"
-#include "jungi/mobilus_gtw_client/io/SocketEvents.h"
 #include "TimeUtils.h"
+#include "jungi/mobilus_gtw_client/io/SocketEvents.h"
 
 #include <chrono>
 #include <sys/select.h>
@@ -45,7 +45,7 @@ void BlockingClientWatcher::loop()
             FD_SET(mSocketFd, &writeFds);
         }
 
-        auto timeout = TimeUtils::milisecondsToTimeval(static_cast<uint64_t>(mTimerDelay.count()));
+        auto timeout = TimeUtils::convertToTimeval(mTimerDelay);
 
         if (select(mSocketFd + 1, &readFds, &writeFds, nullptr, &timeout) < 0) {
             return;

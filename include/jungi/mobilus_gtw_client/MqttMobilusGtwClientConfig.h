@@ -28,8 +28,8 @@ struct MqttMobilusGtwClientConfig final {
     std::unique_ptr<google::protobuf::MessageLite> keepAliveMessage;
     io::ClientWatcher* clientWatcher = &io::NullClientWatcher::instance();
     logging::Logger* logger = &logging::NullLogger::instance();
-    uint32_t connectTimeoutMs = 1000u; // 1 sec
-    uint32_t responseTimeoutMs = 5000u; // 5 secs
+    std::chrono::milliseconds connectTimeout = std::chrono::seconds(1);
+    std::chrono::milliseconds responseTimeout = std::chrono::seconds(5);
 
     /** hooks **/
     SessionExpiringCallback onSessionExpiring = [](int) {};

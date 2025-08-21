@@ -55,7 +55,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     mConnected = true;
     mConfig.clientWatcher->watchSocket(this, mosquitto_socket(mMosq));
 
-    SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.connectTimeoutMs);
+    SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.connectTimeout);
     ConnectCallbackContext connCallbackData = { cond, -1 };
 
     mosquitto_user_data_set(mMosq, &connCallbackData);
@@ -132,7 +132,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
         return e;
     }
 
-    SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.responseTimeoutMs);
+    SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.responseTimeout);
     ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response };
 
     mExpectedMessage = &expectedMessage;

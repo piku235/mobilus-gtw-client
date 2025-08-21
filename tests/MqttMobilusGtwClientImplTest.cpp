@@ -28,7 +28,7 @@ namespace {
 auto clientConfig()
 {
     MqttMobilusGtwClientConfig config("localhost", 1883, "admin", "admin");
-    config.responseTimeoutMs = 100; // 1 sec
+    config.responseTimeout = std::chrono::milliseconds(100);
 
     return config;
 }
@@ -102,7 +102,7 @@ TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
     std::condition_variable cv;
 
     MqttMobilusGtwClientConfig config = { "localhost", 2883, "admin", "admin" };
-    config.connectTimeoutMs = 1;
+    config.connectTimeout = std::chrono::milliseconds(1);
 
     MqttMobilusGtwClientImpl client(std::move(config));
     std::thread fakeBroker(fakeMqttBroker, &cv, &mutex, &ready);
@@ -129,7 +129,7 @@ TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
 TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
 {
     auto config = clientConfig();
-    config.responseTimeoutMs = 1;
+    config.responseTimeout = std::chrono::milliseconds(1);
 
     MqttMobilusGtwClientImpl client(std::move(config));
 

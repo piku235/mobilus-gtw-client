@@ -5,16 +5,16 @@
 
 namespace jungi::mobilus_gtw_client {
 
-SelectCondition::SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd, uint32_t timeoutMs)
+SelectCondition::SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd, std::chrono::milliseconds timeout)
     : mSocketEventHandler(socketEventHandler)
     , mSocketFd(socketFd)
-    , mTimeoutMs(timeoutMs)
+    , mTimeout(timeout)
 {
 }
 
 void SelectCondition::wait()
 {
-    auto timeout = TimeUtils::milisecondsToTimeval(mTimeoutMs);
+    auto timeout = TimeUtils::convertToTimeval(mTimeout);
 
     fd_set readFds;
     fd_set writeFds;

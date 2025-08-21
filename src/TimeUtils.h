@@ -1,13 +1,13 @@
 #pragma once
 
-#include <cstdint>
+#include <chrono>
 #include <sys/time.h>
 
 namespace jungi::mobilus_gtw_client {
 
 namespace TimeUtils {
 
-    timeval milisecondsToTimeval(uint64_t miliseconds);
+    timeval convertToTimeval(std::chrono::milliseconds milliseconds);
 
 }
 
