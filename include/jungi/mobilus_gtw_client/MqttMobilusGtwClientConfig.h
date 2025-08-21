@@ -7,12 +7,12 @@
 
 #include <google/protobuf/message_lite.h>
 
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
-#include <chrono>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -28,11 +28,12 @@ struct MqttMobilusGtwClientConfig final {
     std::unique_ptr<google::protobuf::MessageLite> keepAliveMessage;
     io::ClientWatcher* clientWatcher = &io::NullClientWatcher::instance();
     logging::Logger* logger = &logging::NullLogger::instance();
+    uint32_t connectTimeoutMs = 1000u; // 1 sec
     uint32_t responseTimeoutMs = 5000u; // 5 secs
 
     /** hooks **/
-    SessionExpiringCallback onSessionExpiring = [](int) { };
-    RawMessageCallback onRawMessage = [](const Envelope&) { };
+    SessionExpiringCallback onSessionExpiring = [](int) {};
+    RawMessageCallback onRawMessage = [](const Envelope&) {};
 
     MqttMobilusGtwClientConfig(std::string aHost, uint32_t aPort, std::string aUsername, std::string aPassword, std::optional<std::string> aCafile = std::nullopt)
         : host(std::move(aHost))

@@ -35,6 +35,8 @@ auto clientConfig()
 
 void fakeMqttBroker(std::condition_variable* cv, std::mutex* mutex, bool* ready)
 {
+    std::unique_lock<std::mutex> lock(*mutex);
+
     sockaddr_in saddr;
     saddr.sin_family = AF_INET;
     saddr.sin_port = htons(2883);
@@ -43,9 +45,12 @@ void fakeMqttBroker(std::condition_variable* cv, std::mutex* mutex, bool* ready)
     int serverFd = socket(AF_INET, SOCK_STREAM, 0);
     bind(serverFd, reinterpret_cast<sockaddr*>(&saddr), sizeof(saddr));
     listen(serverFd, 1);
-    int clientFd = accept(serverFd, nullptr, nullptr);
 
-    std::unique_lock<std::mutex> lock(*mutex);
+    *ready = true;
+    lock.unlock();
+    cv->notify_one();
+
+    int clientFd = accept(serverFd, nullptr, nullptr);
     cv->wait(lock, [&]() -> bool { return ready; });
 
     close(clientFd);
@@ -96,10 +101,16 @@ TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
     std::mutex mutex;
     std::condition_variable cv;
 
-    MqttMobilusGtwClientImpl client({ "localhost", 2883, "admin", "admin" });
+    MqttMobilusGtwClientConfig config = { "localhost", 2883, "admin", "admin" };
+    config.connectTimeoutMs = 1;
+
+    MqttMobilusGtwClientImpl client(std::move(config));
     std::thread fakeBroker(fakeMqttBroker, &cv, &mutex, &ready);
 
     std::unique_lock<std::mutex> lock(mutex);
+    cv.wait(lock, [&]() -> bool { return ready; });
+    ready = false;
+
     auto r = client.connect();
 
     ready = true;
