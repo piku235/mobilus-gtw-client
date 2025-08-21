@@ -52,6 +52,31 @@ void fakeMqttBroker(std::condition_variable* cv, std::mutex* mutex, bool* ready)
     close(serverFd);
 }
 
+auto callEventsStub()
+{
+    proto::CallEvents callEvents;
+
+    auto event = callEvents.add_events();
+    event->set_id(1);
+    event->set_device_id(2);
+    event->set_event_number(3);
+    event->set_platform(4);
+
+    return callEvents;
+}
+
+auto devicesListResponseStub()
+{
+    proto::DevicesListResponse response;
+
+    auto device = response.add_devices();
+    device->set_id(1);
+    device->set_name("foo");
+    device->set_type(1);
+
+    return response;
+}
+
 }
 
 TEST(MqttMobilusGtwClientImplTest, Connects)
@@ -159,14 +184,9 @@ TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
     MqttMobilusGtwClientImpl client(clientConfig());
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
-    proto::DevicesListResponse expectedResponse;
-
-    auto device = expectedResponse.add_devices();
-    device->set_id(1);
-    device->set_name("foo");
-    device->set_type(1);
-
+    proto::DevicesListResponse expectedResponse = devicesListResponseStub();
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(expectedResponse));
+
     mobilusActor.run();
 
     ASSERT_TRUE(client.connect());
@@ -221,14 +241,8 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
     MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
-    proto::CallEvents expectedCallEvents;
+    proto::CallEvents expectedCallEvents = callEventsStub();
     proto::CallEvents actualCallEvents;
-
-    auto event = expectedCallEvents.add_events();
-    event->set_id(1);
-    event->set_device_id(2);
-    event->set_event_number(3);
-    event->set_platform(4);
 
     mobilusActor.mockResponseFor(MessageType::CallEvents, std::make_unique<proto::CallEvents>(expectedCallEvents));
     mobilusActor.run();
@@ -256,26 +270,18 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     std::vector<std::unique_ptr<google::protobuf::MessageLite>> subscribedMessages;
-    proto::CallEvents expectedCallEvents;
-
-    auto event = expectedCallEvents.add_events();
-    event->set_id(1);
-    event->set_device_id(2);
-    event->set_event_number(3);
-    event->set_platform(4);
-
-    proto::DevicesListResponse expectedDeviceList;
-
-    auto device = expectedDeviceList.add_devices();
-    device->set_id(1);
-    device->set_name("foo");
-    device->set_type(1);
+    proto::CallEvents expectedCallEvents = callEventsStub();
+    proto::DevicesListResponse expectedDeviceList = devicesListResponseStub();
+    proto::CallEvents actualCallEvents;
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(expectedDeviceList));
     mobilusActor.mockResponseFor(MessageType::CallEvents, std::make_unique<proto::CallEvents>(expectedCallEvents));
     mobilusActor.run();
 
-    client.messageBus().subscribeAll([&](const google::protobuf::MessageLite& message) {
+    client.messageBus().subscribe<proto::CallEvents>(MessageType::CallEvents, [&actualCallEvents](const auto& message) {
+        actualCallEvents.CopyFrom(message);
+    });
+    client.messageBus().subscribeAll([&subscribedMessages](const google::protobuf::MessageLite& message) {
         std::unique_ptr<google::protobuf::MessageLite> subscribedMessage(message.New());
 
         subscribedMessage->CheckTypeAndMergeFrom(message);
@@ -289,5 +295,35 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
     clientWatcher.loopFor(std::chrono::milliseconds(100));
 
     ASSERT_EQ(2, subscribedMessages.size());
+    ASSERT_EQ(expectedCallEvents.SerializeAsString(), actualCallEvents.SerializeAsString());
     ASSERT_EQ(expectedCallEvents.SerializeAsString(), subscribedMessages[0]->SerializeAsString());
+    ASSERT_EQ(expectedDeviceList.SerializeAsString(), subscribedMessages[1]->SerializeAsString());
+}
+
+TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
+{
+    TestSocketWatcher clientWatcher;
+    MqttMobilusGtwClientConfig config = clientConfig();
+    config.clientWatcher = &clientWatcher;
+
+    MqttMobilusGtwClientImpl client(std::move(config));
+    MockMqttMobilusActor mobilusActor("localhost", 1883);
+
+    bool subscribed = false;
+
+    mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(devicesListResponseStub()));
+    mobilusActor.run();
+
+    client.messageBus().subscribe<proto::DevicesListResponse>(MessageType::DevicesListResponse, [&subscribed](const auto&) {
+        subscribed = true;
+    });
+
+    ASSERT_TRUE(client.connect());
+
+    proto::DevicesListResponse response;
+    ASSERT_TRUE(client.sendRequest(proto::DevicesListRequest(), response));
+
+    clientWatcher.loopFor(std::chrono::milliseconds(100));
+
+    ASSERT_FALSE(subscribed);
 }
