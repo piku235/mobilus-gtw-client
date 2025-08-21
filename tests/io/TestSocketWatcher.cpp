@@ -13,7 +13,9 @@ void TestSocketWatcher::loopFor(std::chrono::milliseconds duration)
     fd_set readFds;
     fd_set writeFds;
 
-    pipe(mWakeFd);
+    if (pipe(mWakeFd) != 0) {
+        return;
+    }
 
     auto timeout = convertToTimeval(duration);
 
@@ -108,7 +110,7 @@ void TestSocketWatcher::stop()
     }
 
     char byte = 1;
-    write(mWakeFd[1], &byte, 1);
+    (void)write(mWakeFd[1], &byte, 1);
 }
 
 timeval TestSocketWatcher::convertToTimeval(std::chrono::milliseconds ms)
