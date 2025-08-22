@@ -271,11 +271,11 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
     mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
 
     if (auto e = sendRequest(request, response); !e) {
-        return logAndReturn(Error::AuthenticationFailed("Login request has failed: " + e.error().message()));
+        return logAndReturn(Error::LoginFailed("Login request has failed: " + e.error().message()));
     }
 
     if (0 != response.login_status()) {
-        return logAndReturn(Error::AuthenticationFailed("Mobilus authentication has failed, possibly wrong credentials provided"));
+        return logAndReturn(Error::LoginFailed("Mobilus authentication has failed, possibly wrong credentials provided"));
     }
 
     auto publicKey = crypto::bytes(response.public_key().begin(), response.public_key().end());
@@ -319,8 +319,8 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
 
     mConfig.onRawMessage(*envelope);
 
-    if (Envelope::ResponseStatus::AuthenticationFailed == envelope->responseStatus) {
-        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::AuthenticationFailed("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus)) });
+    if (Envelope::ResponseStatus::InvalidSession == envelope->responseStatus) {
+        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::InvalidSession("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus)) });
         return;
     }
 
@@ -367,8 +367,8 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
 
     expectedMessage.responseStatus = envelope->responseStatus;
 
-    if (Envelope::ResponseStatus::AuthenticationFailed == envelope->responseStatus) {
-        expectedMessage.error = Error::AuthenticationFailed("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
+    if (Envelope::ResponseStatus::InvalidSession == envelope->responseStatus) {
+        expectedMessage.error = Error::InvalidSession("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
         cond.notify();
 
         return;
@@ -436,7 +436,7 @@ void MqttMobilusGtwClientImpl::processError(const Error& error)
 {
     mConfig.logger->error(error.message());
 
-    if (ErrorCode::AuthenticationFailed == error.code()) {
+    if (ErrorCode::InvalidSession == error.code()) {
         (void)login();
     }
 }

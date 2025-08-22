@@ -126,7 +126,7 @@ TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
     ASSERT_EQ("MQTT connection timeout: CONNACK missing", r.error().message());
 }
 
-TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
+TEST(MqttMobilusGtwClientImplTest, LoginFailsOnTimeout)
 {
     auto config = clientConfig();
     config.responseTimeout = std::chrono::milliseconds(1);
@@ -136,11 +136,11 @@ TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
     auto r = client.connect();
 
     ASSERT_FALSE(r.has_value());
-    ASSERT_EQ(ErrorCode::AuthenticationFailed, r.error().code());
+    ASSERT_EQ(ErrorCode::LoginFailed, r.error().code());
     ASSERT_EQ("Login request has failed: Response timed out", r.error().message());
 }
 
-TEST(MqttMobilusGtwClientImplTest, AuthenticationFailed)
+TEST(MqttMobilusGtwClientImplTest, LoginFailed)
 {
     MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "123456" });
     MockMqttMobilusActor mobilusActor("localhost", 1883);
@@ -149,7 +149,7 @@ TEST(MqttMobilusGtwClientImplTest, AuthenticationFailed)
     auto r = client.connect();
 
     ASSERT_FALSE(r.has_value());
-    ASSERT_EQ(ErrorCode::AuthenticationFailed, r.error().code());
+    ASSERT_EQ(ErrorCode::LoginFailed, r.error().code());
     ASSERT_EQ("Mobilus authentication has failed, possibly wrong credentials provided", r.error().message());
 }
 

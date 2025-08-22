@@ -33,7 +33,7 @@ TEST(EnvelopeTest, DoesNotEqual)
     std::vector<Envelope> otherEnvelops = {
         Envelope { MessageType::CallEvents },
         Envelope { MessageType::CallEvents, 1754566797, { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 }, Platform::Host, Envelope::ResponseStatus::Success, { 0x12, 0x13, 0x14 } },
-        Envelope { MessageType::CallEvents, 1754566797, { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 }, Platform::Web, Envelope::ResponseStatus::AuthenticationFailed, { 0x12, 0x13, 0x14 } },
+        Envelope { MessageType::CallEvents, 1754566797, { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 }, Platform::Web, Envelope::ResponseStatus::InvalidSession, { 0x12, 0x13, 0x14 } },
         Envelope { MessageType::CallEvents, 1754566797, { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 }, Platform::Web, Envelope::ResponseStatus::Success, { 0x12, 0x13, 0x15 } }
     };
 

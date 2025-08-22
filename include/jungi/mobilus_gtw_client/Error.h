@@ -8,7 +8,8 @@ namespace jungi::mobilus_gtw_client {
 
 class Error final {
 public:
-    static Error AuthenticationFailed(std::string message) { return { ErrorCode::AuthenticationFailed, std::move(message) }; }
+    static Error InvalidSession(std::string message) { return { ErrorCode::InvalidSession, std::move(message) }; }
+    static Error LoginFailed(std::string message) { return { ErrorCode::LoginFailed, std::move(message) }; }
     static Error BadResponse(std::string message) { return { ErrorCode::BadResponse, std::move(message) }; }
     static Error BadMessage(std::string message) { return { ErrorCode::BadMessage, std::move(message) }; }
     static Error UnexpectedMessage(std::string message) { return { ErrorCode::UnexpectedMessage, std::move(message) }; }
