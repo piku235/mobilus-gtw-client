@@ -11,7 +11,7 @@ enum class ErrorCode : uint8_t {
     UnexpectedMessage = 4,
     Transport = 5,
     NoConnection = 6,
-    Timeout = 7,
+    ResponseTimeout = 7,
     Unknown = 255,
 };
 

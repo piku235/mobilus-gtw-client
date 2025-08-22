@@ -140,7 +140,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
     mExpectedMessage = nullptr;
 
     if (!cond.condition()) {
-        return logAndReturn(Error::Timeout("Request timed out after waiting for a response"));
+        return logAndReturn(Error::ResponseTimeout("Response timed out"));
     }
 
     if (expectedMessage.error) {

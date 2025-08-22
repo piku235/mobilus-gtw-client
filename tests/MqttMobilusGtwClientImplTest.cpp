@@ -137,7 +137,7 @@ TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
 
     ASSERT_FALSE(r.has_value());
     ASSERT_EQ(ErrorCode::AuthenticationFailed, r.error().code());
-    ASSERT_EQ("Login request has failed: Request timed out after waiting for a response", r.error().message());
+    ASSERT_EQ("Login request has failed: Response timed out", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, AuthenticationFailed)
@@ -227,7 +227,7 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
     ASSERT_EQ("Expected to get message of code: 4 but got: 27", r.error().message());
 }
 
-TEST(MqttMobilusGtwClientImplTest, SendRequestTimeouts)
+TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)
 {
     MqttMobilusGtwClientImpl client(clientConfig());
     MockMqttMobilusActor mobilusActor("localhost", 1883);
@@ -239,8 +239,8 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestTimeouts)
     auto r = client.sendRequest(proto::DevicesListRequest(), response);
 
     ASSERT_FALSE(r.has_value());
-    ASSERT_EQ(ErrorCode::Timeout, r.error().code());
-    ASSERT_EQ("Request timed out after waiting for a response", r.error().message());
+    ASSERT_EQ(ErrorCode::ResponseTimeout, r.error().code());
+    ASSERT_EQ("Response timed out", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
