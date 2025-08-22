@@ -63,7 +63,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     cond.wait();
 
     if (!cond.condition()) {
-        return logAndReturn(Error::Transport("MQTT connection timeout"));
+        return logAndReturn(Error::ConnectionTimeout("MQTT connection timeout: CONNACK missing"));
     } else if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
         return logAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }

@@ -122,8 +122,8 @@ TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
     }
 
     ASSERT_FALSE(r.has_value());
-    ASSERT_EQ(ErrorCode::Transport, r.error().code());
-    ASSERT_EQ("MQTT connection timeout", r.error().message());
+    ASSERT_EQ(ErrorCode::ConnectionTimeout, r.error().code());
+    ASSERT_EQ("MQTT connection timeout: CONNACK missing", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, AuthenticationFailsOnTimeout)
