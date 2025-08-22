@@ -10,6 +10,7 @@ class Error final {
 public:
     static Error InvalidSession(std::string message) { return { ErrorCode::InvalidSession, std::move(message) }; }
     static Error LoginFailed(std::string message) { return { ErrorCode::LoginFailed, std::move(message) }; }
+    static Error LoginTimeout(std::string message) { return { ErrorCode::LoginTimeout, std::move(message) }; }
     static Error BadResponse(std::string message) { return { ErrorCode::BadResponse, std::move(message) }; }
     static Error BadMessage(std::string message) { return { ErrorCode::BadMessage, std::move(message) }; }
     static Error UnexpectedMessage(std::string message) { return { ErrorCode::UnexpectedMessage, std::move(message) }; }

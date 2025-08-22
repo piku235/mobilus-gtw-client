@@ -271,6 +271,10 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
     mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
 
     if (auto e = sendRequest(request, response); !e) {
+        if (ErrorCode::ResponseTimeout == e.error().code()) {
+            return logAndReturn(Error::LoginTimeout("Login timed out"));
+        }
+
         return logAndReturn(Error::LoginFailed("Login request has failed: " + e.error().message()));
     }
 

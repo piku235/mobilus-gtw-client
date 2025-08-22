@@ -95,7 +95,7 @@ TEST(MqttMobilusGtwClientImplTest, Connects)
     ASSERT_TRUE(r.has_value());
 }
 
-TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
+TEST(MqttMobilusGtwClientImplTest, ConnectionTimedOut)
 {
     bool ready = false;
     std::mutex mutex;
@@ -126,7 +126,7 @@ TEST(MqttMobilusGtwClientImplTest, ConnectFailsOnTimeout)
     ASSERT_EQ("MQTT connection timeout: CONNACK missing", r.error().message());
 }
 
-TEST(MqttMobilusGtwClientImplTest, LoginFailsOnTimeout)
+TEST(MqttMobilusGtwClientImplTest, LoginTimedOut)
 {
     auto config = clientConfig();
     config.responseTimeout = std::chrono::milliseconds(1);
@@ -136,8 +136,8 @@ TEST(MqttMobilusGtwClientImplTest, LoginFailsOnTimeout)
     auto r = client.connect();
 
     ASSERT_FALSE(r.has_value());
-    ASSERT_EQ(ErrorCode::LoginFailed, r.error().code());
-    ASSERT_EQ("Login request has failed: Response timed out", r.error().message());
+    ASSERT_EQ(ErrorCode::LoginTimeout, r.error().code());
+    ASSERT_EQ("Login timed out", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, LoginFailed)

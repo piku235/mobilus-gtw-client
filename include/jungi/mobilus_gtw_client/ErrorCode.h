@@ -7,13 +7,14 @@ namespace jungi::mobilus_gtw_client {
 enum class ErrorCode : uint8_t {
     InvalidSession = 1,
     LoginFailed = 2,
-    BadResponse = 3,
-    BadMessage = 4,
-    UnexpectedMessage = 5,
-    Transport = 6,
-    NoConnection = 7,
-    ConnectionTimeout = 8,
-    ResponseTimeout = 9,
+    LoginTimeout = 3,
+    BadResponse = 4,
+    BadMessage = 5,
+    UnexpectedMessage = 6,
+    Transport = 7,
+    NoConnection = 8,
+    ConnectionTimeout = 9,
+    ResponseTimeout = 10,
     Unknown = 255,
 };
 
