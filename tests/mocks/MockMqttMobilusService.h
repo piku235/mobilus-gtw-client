@@ -1,6 +1,6 @@
 #pragma once
 
-#include "crypto/Aes256Encryptor.h"
+#include "crypto/Encryptor.h"
 #include "jungi/mobilus_gtw_client/Envelope.h"
 #include "jungi/mobilus_gtw_client/MessageType.h"
 #include "jungi/mobilus_gtw_client/io/ClientWatcher.h"
@@ -46,8 +46,8 @@ private:
     size_t mPort;
     crypto::bytes mPublicKey;
     crypto::bytes mPrivateKey;
-    crypto::Aes256Encryptor mPublicEncryptor;
-    crypto::Aes256Encryptor mPrivateEncryptor;
+    std::unique_ptr<crypto::Encryptor> mPublicEncryptor;
+    std::unique_ptr<crypto::Encryptor> mPrivateEncryptor;
     MockResponseMap mMockResponses;
     io::ClientWatcher& mClientWatcher;
 
@@ -55,7 +55,7 @@ private:
     void onMessage(const mosquitto_message* message);
 
     bool reply(const std::string& clientTopic, const google::protobuf::MessageLite& message);
-    bool send(const std::string& clientTopic, const google::protobuf::MessageLite& message, const crypto::Aes256Encryptor& encryptor);
+    bool send(const std::string& clientTopic, const google::protobuf::MessageLite& message, const crypto::Encryptor& encryptor);
     crypto::bytes randomKey();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     void handleLoginRequest(const Envelope& envelope);

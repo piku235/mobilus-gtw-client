@@ -1,4 +1,5 @@
 #include "MockMqttMobilusService.h"
+#include "crypto/Aes256Encryptor.h"
 #include "crypto/hash.h"
 #include "crypto/utils.h"
 #include "jungi/mobilus_gtw_client/MessageType.h"
@@ -38,10 +39,6 @@ namespace jungi::mobilus_gtw_client::tests::mocks {
 MockMqttMobilusService::MockMqttMobilusService(std::string host, size_t port, MockResponseMap mockResponses, ClientWatcher& clientWatcher)
     : mHost(std::move(host))
     , mPort(port)
-    , mPublicKey(randomKey())
-    , mPrivateKey(randomKey())
-    , mPublicEncryptor(mPublicKey)
-    , mPrivateEncryptor(mPrivateKey)
     , mMockResponses(std::move(mockResponses))
     , mClientWatcher(clientWatcher)
 {
@@ -123,10 +120,14 @@ void MockMqttMobilusService::handleSocketEvents(SocketEvents revents)
 
 bool MockMqttMobilusService::reply(const std::string& clientTopic, const google::protobuf::MessageLite& message)
 {
-    return send(std::move(clientTopic), message, mPrivateEncryptor);
+    if (!mPrivateEncryptor) {
+        return false;
+    }
+
+    return send(std::move(clientTopic), message, *mPrivateEncryptor);
 }
 
-bool MockMqttMobilusService::send(const std::string& clientTopic, const google::protobuf::MessageLite& message, const crypto::Aes256Encryptor& encryptor)
+bool MockMqttMobilusService::send(const std::string& clientTopic, const google::protobuf::MessageLite& message, const crypto::Encryptor& encryptor)
 {
     if (nullptr == mMosq) {
         return false;
@@ -186,6 +187,11 @@ void MockMqttMobilusService::handleLoginRequest(const Envelope& envelope)
         return;
     }
 
+    mPublicKey = randomKey();
+    mPrivateKey = randomKey();
+    mPublicEncryptor = std::make_unique<crypto::Aes256Encryptor>(mPublicKey);
+    mPrivateEncryptor = std::make_unique<crypto::Aes256Encryptor>(mPrivateKey);
+
     proto::LoginResponse loginResponse;
 
     loginResponse.set_admin(true);
@@ -200,7 +206,11 @@ void MockMqttMobilusService::handleLoginRequest(const Envelope& envelope)
 
 void MockMqttMobilusService::handleCallEvents(const Envelope& envelope)
 {
-    auto decryptedBody = mPrivateEncryptor.decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+    if (!mPrivateEncryptor || !mPublicEncryptor) {
+        return;
+    }
+
+    auto decryptedBody = mPrivateEncryptor->decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
     proto::CallEvents callEvents;
 
     if (!callEvents.ParseFromArray(decryptedBody.data(), decryptedBody.size())) {
@@ -214,12 +224,16 @@ void MockMqttMobilusService::handleCallEvents(const Envelope& envelope)
 
     auto& response = it->second;
 
-    send(kEventsTopic, *response, mPublicEncryptor);
+    send(kEventsTopic, *response, *mPublicEncryptor);
 }
 
 void MockMqttMobilusService::handleMockResponse(const Envelope& envelope)
 {
-    auto decryptedBody = mPrivateEncryptor.decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+    if (!mPrivateEncryptor) {
+        return;
+    }
+
+    auto decryptedBody = mPrivateEncryptor->decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
     auto message = ProtoUtils::newMessageFor(envelope.messageType);
 
     if (!message) {
