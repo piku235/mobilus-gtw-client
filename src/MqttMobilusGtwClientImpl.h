@@ -53,7 +53,6 @@ private:
         std::string topic;
         uint8_t messageType;
         std::unique_ptr<google::protobuf::MessageLite> message;
-        std::optional<Error> error = std::nullopt;
     };
 
     class LibInit {
@@ -99,9 +98,9 @@ private:
     void onGeneralMessage(const mosquitto_message* mosqMessage);
     void onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage);
     void handleClientCallEvents(const proto::CallEvents& callEvents);
-    void processError(const Error& error);
     void handleLostConnection(int rc);
-    void processQueuedMessages();
+    void handleInvalidSession();
+    void dispatchQueuedMessages();
     void clearSession();
     void scheduleTimer();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);

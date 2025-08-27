@@ -144,6 +144,10 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
     }
 
     if (expectedMessage.error) {
+        if (ErrorCode::InvalidSession == expectedMessage.error->code()) {
+            handleInvalidSession();
+        }
+
         return logAndReturn(std::move(*expectedMessage.error));
     }
 
@@ -180,7 +184,7 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
             return;
         }
 
-        processQueuedMessages();
+        dispatchQueuedMessages();
     }
 
     if (revents.has(io::SocketEvents::Write)) {
@@ -317,38 +321,40 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
 {
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
     if (!envelope) {
-        mMessageQueue.push({ mosqMessage->topic, MessageType::Unknown, nullptr, Error::BadMessage("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen)) });
+        mConfig.logger->error("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen));
         return;
     }
 
     mConfig.onRawMessage(*envelope);
 
     if (Envelope::ResponseStatus::InvalidSession == envelope->responseStatus) {
-        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::InvalidSession("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus)) });
+        handleInvalidSession();
+
+        mConfig.logger->error("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
         return;
     }
 
     if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
-        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::BadResponse("Bad response from mobilus: " + std::to_string(envelope->responseStatus)) });
+        mConfig.logger->error("Bad response from mobilus: " + std::to_string(envelope->responseStatus));
         return;
     }
 
     auto& encryptor = MessageType::CallEvents == envelope->messageType ? mPublicEncryptor : mPrivateEncryptor;
     if (!encryptor) {
-        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::Unknown("Missing encryptor for message type: " + std::to_string(envelope->messageType)) });
+        mConfig.logger->error("Missing encryptor for message type: " + std::to_string(envelope->messageType));
         return;
     }
 
     auto message = ProtoUtils::newMessageFor(envelope->messageType);
     if (!message) {
-        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::Unknown("Missing proto for message type: " + std::to_string(envelope->messageType)) });
+        mConfig.logger->error("Missing proto for message type: " + std::to_string(envelope->messageType));
         return;
     }
 
     auto decryptedBody = encryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
 
     if (!message->ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
-        mMessageQueue.push({ mosqMessage->topic, envelope->messageType, nullptr, Error::BadMessage("Failed to parse proto of message type: " + std::to_string(envelope->messageType)) });
+        mConfig.logger->error("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
         return;
     }
 
@@ -420,7 +426,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
     auto& event = callEvents.events(0);
 
     if (!event.value().compare("EXPIRED")) {
-        (void)login();
+        handleInvalidSession();
         return;
     }
 
@@ -436,13 +442,16 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
     }
 }
 
-void MqttMobilusGtwClientImpl::processError(const Error& error)
+void MqttMobilusGtwClientImpl::handleInvalidSession()
 {
-    mConfig.logger->error(error.message());
-
-    if (ErrorCode::InvalidSession == error.code()) {
-        (void)login();
+    if (mReconnecting) {
+        return;
     }
+
+    (void)disconnect();
+
+    mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
+    mReconnecting = true;
 }
 
 void MqttMobilusGtwClientImpl::handleLostConnection(int rc)
@@ -513,17 +522,12 @@ void MqttMobilusGtwClientImpl::reconnect()
     mReconnecting = false;
 }
 
-void MqttMobilusGtwClientImpl::processQueuedMessages()
+void MqttMobilusGtwClientImpl::dispatchQueuedMessages()
 {
     while (!mMessageQueue.empty()) {
         auto queuedMessage = std::move(mMessageQueue.front());
 
         mMessageQueue.pop();
-
-        if (queuedMessage.error) {
-            processError(*queuedMessage.error);
-            continue;
-        }
 
         // session call events
         if (!queuedMessage.topic.compare(mClientId.toHex()) && MessageType::CallEvents == queuedMessage.messageType) {
