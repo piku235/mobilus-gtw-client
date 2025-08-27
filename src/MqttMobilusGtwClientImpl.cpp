@@ -515,8 +515,10 @@ void MqttMobilusGtwClientImpl::reconnect()
 
 void MqttMobilusGtwClientImpl::processQueuedMessages()
 {
-    for (; !mMessageQueue.empty(); mMessageQueue.pop()) {
-        auto& queuedMessage = mMessageQueue.front();
+    while (!mMessageQueue.empty()) {
+        auto queuedMessage = std::move(mMessageQueue.front());
+
+        mMessageQueue.pop();
 
         if (queuedMessage.error) {
             processError(*queuedMessage.error);
