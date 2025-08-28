@@ -1,5 +1,10 @@
 add_library(io OBJECT
-  TestSocketWatcher.cpp
+  TestClientWatcher.cpp
+)
+
+target_include_directories(io
+  PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
 )
 
 target_link_libraries(io

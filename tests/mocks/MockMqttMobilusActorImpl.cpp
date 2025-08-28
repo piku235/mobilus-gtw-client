@@ -1,7 +1,8 @@
-#include "MockMqttMobilusService.h"
+#include "MockMqttMobilusActorImpl.h"
 #include "crypto/Aes256Encryptor.h"
 #include "crypto/hash.h"
 #include "crypto/utils.h"
+#include "jungi/mobilus_gtw_client/EventNumber.h"
 #include "jungi/mobilus_gtw_client/MessageType.h"
 #include "jungi/mobilus_gtw_client/Platform.h"
 #include "jungi/mobilus_gtw_client/ProtoUtils.h"
@@ -36,26 +37,22 @@ static std::string bin2hex(const TContainer& buf)
 
 namespace jungi::mobilus_gtw_client::tests::mocks {
 
-MockMqttMobilusService::MockMqttMobilusService(std::string host, size_t port, MockResponseMap mockResponses, ClientWatcher& clientWatcher)
+MockMqttMobilusActorImpl::MockMqttMobilusActorImpl(std::string host, size_t port)
     : mHost(std::move(host))
     , mPort(port)
-    , mMockResponses(std::move(mockResponses))
-    , mClientWatcher(clientWatcher)
 {
 }
 
-MockMqttMobilusService::~MockMqttMobilusService()
+MockMqttMobilusActorImpl::~MockMqttMobilusActorImpl()
 {
     if (nullptr != mMosq) {
-        mClientWatcher.unwatchSocket(this, mosquitto_socket(mMosq));
-
         mosquitto_disconnect(mMosq);
         mosquitto_destroy(mMosq);
         mMosq = nullptr;
     }
 }
 
-bool MockMqttMobilusService::connect()
+bool MockMqttMobilusActorImpl::connect()
 {
     if (nullptr != mMosq) {
         return true;
@@ -87,12 +84,38 @@ bool MockMqttMobilusService::connect()
     }
 
     mMosq = mosq;
-    mClientWatcher.watchSocket(this, mosquitto_socket(mMosq));
 
     return true;
 }
 
-SocketEvents MockMqttMobilusService::socketEvents()
+void MockMqttMobilusActorImpl::handle(ReplyClientCommand& cmd)
+{
+    auto messageType = ProtoUtils::messageTypeFor(*cmd.message);
+    auto& encryptor = MessageType::CallEvents == messageType ? mPublicEncryptor : mPrivateEncryptor;
+
+    if (!mLoggedClientId.empty() && encryptor) {
+        send(mLoggedClientId, *cmd.message, *encryptor);
+    }
+}
+
+void MockMqttMobilusActorImpl::handle(ShareMessageCommand& cmd)
+{
+    if (mPublicEncryptor) {
+        send(kEventsTopic, *cmd.message, *mPublicEncryptor);
+    }
+}
+
+void MockMqttMobilusActorImpl::handle(MockResponseCommand& cmd)
+{
+    mMockResponses.emplace(cmd.requestType, std::move(cmd.response));
+}
+
+int MockMqttMobilusActorImpl::socketFd()
+{
+    return mosquitto_socket(mMosq);
+}
+
+SocketEvents MockMqttMobilusActorImpl::socketEvents()
 {
     if (nullptr == mMosq) {
         return {};
@@ -108,7 +131,7 @@ SocketEvents MockMqttMobilusService::socketEvents()
     return events;
 }
 
-void MockMqttMobilusService::handleSocketEvents(SocketEvents revents)
+void MockMqttMobilusActorImpl::handleSocketEvents(SocketEvents revents)
 {
     if (revents.has(SocketEvents::Read)) {
         mosquitto_loop_read(mMosq, 1);
@@ -118,16 +141,7 @@ void MockMqttMobilusService::handleSocketEvents(SocketEvents revents)
     }
 }
 
-bool MockMqttMobilusService::reply(const std::string& clientTopic, const google::protobuf::MessageLite& message)
-{
-    if (!mPrivateEncryptor) {
-        return false;
-    }
-
-    return send(std::move(clientTopic), message, *mPrivateEncryptor);
-}
-
-bool MockMqttMobilusService::send(const std::string& clientTopic, const google::protobuf::MessageLite& message, const crypto::Encryptor& encryptor)
+bool MockMqttMobilusActorImpl::send(const std::string& topic, const google::protobuf::MessageLite& message, const crypto::Encryptor& encryptor)
 {
     if (nullptr == mMosq) {
         return false;
@@ -138,7 +152,7 @@ bool MockMqttMobilusService::send(const std::string& clientTopic, const google::
     envelope.messageBody = encryptor.encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
     auto serialized = envelope.serialize();
 
-    int rc = mosquitto_publish(mMosq, nullptr, clientTopic.c_str(), serialized.size(), serialized.data(), 0, false);
+    int rc = mosquitto_publish(mMosq, nullptr, topic.c_str(), serialized.size(), serialized.data(), 0, false);
 
     if (MOSQ_ERR_SUCCESS != rc) {
         return false;
@@ -147,7 +161,7 @@ bool MockMqttMobilusService::send(const std::string& clientTopic, const google::
     return true;
 }
 
-void MockMqttMobilusService::onMessage(const mosquitto_message* message)
+void MockMqttMobilusActorImpl::onMessage(const mosquitto_message* message)
 {
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(message->payload), message->payloadlen);
 
@@ -155,19 +169,15 @@ void MockMqttMobilusService::onMessage(const mosquitto_message* message)
         return;
     }
 
-    switch (envelope->messageType) {
-    case MessageType::LoginRequest:
+    if (MessageType::LoginRequest == envelope->messageType) {
         handleLoginRequest(*envelope);
         return;
-    case MessageType::CallEvents:
-        handleCallEvents(*envelope);
-        return;
-    default:
-        handleMockResponse(*envelope);
     }
+
+    handleMockResponse(*envelope);
 }
 
-void MockMqttMobilusService::handleLoginRequest(const Envelope& envelope)
+void MockMqttMobilusActorImpl::handleLoginRequest(const Envelope& envelope)
 {
     proto::LoginRequest loginRequest;
 
@@ -191,6 +201,7 @@ void MockMqttMobilusService::handleLoginRequest(const Envelope& envelope)
     mPrivateKey = randomKey();
     mPublicEncryptor = std::make_unique<crypto::Aes256Encryptor>(mPublicKey);
     mPrivateEncryptor = std::make_unique<crypto::Aes256Encryptor>(mPrivateKey);
+    mLoggedClientId = bin2hex(envelope.clientId);
 
     proto::LoginResponse loginResponse;
 
@@ -201,33 +212,10 @@ void MockMqttMobilusService::handleLoginRequest(const Envelope& envelope)
     loginResponse.set_public_key(mPublicKey.data(), mPublicKey.size());
     loginResponse.set_private_key(mPrivateKey.data(), mPrivateKey.size());
 
-    send(bin2hex(envelope.clientId), loginResponse, encryptor);
+    send(mLoggedClientId, loginResponse, encryptor);
 }
 
-void MockMqttMobilusService::handleCallEvents(const Envelope& envelope)
-{
-    if (!mPrivateEncryptor || !mPublicEncryptor) {
-        return;
-    }
-
-    auto decryptedBody = mPrivateEncryptor->decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
-    proto::CallEvents callEvents;
-
-    if (!callEvents.ParseFromArray(decryptedBody.data(), decryptedBody.size())) {
-        return;
-    }
-
-    auto it = mMockResponses.find(envelope.messageType);
-    if (it == mMockResponses.end()) {
-        return;
-    }
-
-    auto& response = it->second;
-
-    send(kEventsTopic, *response, *mPublicEncryptor);
-}
-
-void MockMqttMobilusService::handleMockResponse(const Envelope& envelope)
+void MockMqttMobilusActorImpl::handleMockResponse(const Envelope& envelope)
 {
     if (!mPrivateEncryptor) {
         return;
@@ -246,12 +234,11 @@ void MockMqttMobilusService::handleMockResponse(const Envelope& envelope)
 
     auto it = mMockResponses.find(envelope.messageType);
     if (it != mMockResponses.end()) {
-        auto& response = it->second;
-        reply(bin2hex(envelope.clientId), *response);
+        send(bin2hex(envelope.clientId), *it->second, *mPrivateEncryptor);
     }
 }
 
-crypto::bytes MockMqttMobilusService::randomKey()
+crypto::bytes MockMqttMobilusActorImpl::randomKey()
 {
     crypto::byte buf[32];
 
@@ -260,7 +247,7 @@ crypto::bytes MockMqttMobilusService::randomKey()
     return { buf, buf + sizeof(buf) };
 }
 
-Envelope MockMqttMobilusService::envelopeFor(const google::protobuf::MessageLite& message)
+Envelope MockMqttMobilusActorImpl::envelopeFor(const google::protobuf::MessageLite& message)
 {
     std::vector<uint8_t> messageBody;
 

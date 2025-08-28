@@ -1,19 +1,18 @@
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
+
 add_library(mocks OBJECT
-  MockMqttMobilusService.cpp
   MockMqttMobilusActor.cpp
-  ${TEST_SOURCES}
+  MockMqttMobilusActorImpl.cpp
 )
 
 target_include_directories(mocks
-  PUBLIC
-    ../
   PRIVATE
     ${PROJECT_SOURCE_DIR}/src
 )
 
 target_link_libraries(mocks
   PRIVATE
-    io
-    crypto
+    PkgConfig::MOSQUITTO
     mobilus_gtw_client
 )

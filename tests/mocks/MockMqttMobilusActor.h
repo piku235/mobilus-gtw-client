@@ -1,15 +1,15 @@
 #pragma once
 
-#include "MockMqttMobilusService.h"
-#include "io/TestSocketWatcher.h"
+#include "MockMqttMobilusActorImpl.h"
 
 #include <google/protobuf/message_lite.h>
 
-#include <cstdint>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
+#include <queue>
 #include <string>
 #include <thread>
-#include <vector>
 
 namespace jungi::mobilus_gtw_client::tests::mocks {
 
@@ -19,17 +19,26 @@ public:
     ~MockMqttMobilusActor();
 
     void mockResponseFor(uint8_t requestType, std::unique_ptr<const google::protobuf::MessageLite> response);
-    void run();
+    void reply(std::unique_ptr<const google::protobuf::MessageLite> message);
+    void share(std::unique_ptr<const google::protobuf::MessageLite> message);
     void stop();
 
-    bool isRunning() const;
-
 private:
-    std::string mHost;
-    size_t mPort;
-    std::thread mThread;
-    MockMqttMobilusService::MockResponseMap mMockResponses;
-    jungi::mobilus_gtw_client::tests::io::TestSocketWatcher mSocketWatcher;
+    using Impl = MockMqttMobilusActorImpl;
+
+    std::thread mSelf;
+    std::mutex mMutex;
+    std::condition_variable mCv;
+    std::queue<std::unique_ptr<Impl::Command>> mQueue;
+    bool mReady = false;
+    bool mStop = false;
+    int mWakeFd[2] = { -1, -1 };
+
+    void run(Impl& impl);
+    void wakeUp();
+    void consumeWakeUp();
+    void post(std::unique_ptr<Impl::Command> cmd);
+    void processQueue(Impl& impl);
 };
 
 }
