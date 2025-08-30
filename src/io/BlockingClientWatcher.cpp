@@ -4,64 +4,74 @@
 
 #include <chrono>
 #include <sys/select.h>
-#include <thread>
+#include <algorithm>
 
 using std::chrono::steady_clock;
 
 namespace jungi::mobilus_gtw_client::io {
 
-void BlockingClientWatcher::loop()
+void BlockingClientWatcher::loopFor(std::chrono::milliseconds duration)
 {
     if (nullptr == mSocketEventHandler && nullptr == mTimerEventHandler) {
         return;
     }
 
+    const auto untilTime = steady_clock::now() + duration;
     auto lastTimerAt = steady_clock::now();
 
     fd_set readFds;
     fd_set writeFds;
 
-    while (nullptr != mTimerEventHandler || nullptr != mSocketEventHandler) {
+    while (steady_clock::now() <= untilTime && (nullptr != mTimerEventHandler || nullptr != mSocketEventHandler)) {
+        auto absoluteDelay = std::chrono::duration_cast<std::chrono::milliseconds>(untilTime - steady_clock::now());
+
         if (nullptr != mTimerEventHandler && steady_clock::now() - lastTimerAt >= mTimerDelay) {
             mTimerEventHandler->handleTimerEvent();
             lastTimerAt = steady_clock::now();
         }
 
-        if (nullptr == mSocketEventHandler) {
-            // mTimerDelay should be valid since mTimerEventHandler cannot be null at this point
-            std::this_thread::sleep_for(mTimerDelay);
-            continue;
-        }
-
         FD_ZERO(&readFds);
         FD_ZERO(&writeFds);
 
-        auto events = mSocketEventHandler->socketEvents();
+        int nfds = kInvalidSocketFd;
 
-        if (events.has(SocketEvents::Read)) {
-            FD_SET(mSocketFd, &readFds);
+        if (nullptr != mSocketEventHandler) {
+            auto events = mSocketEventHandler->socketEvents();
+
+            if (events.has(SocketEvents::Read)) {
+                FD_SET(mSocketFd, &readFds);
+            }
+            if (events.has(SocketEvents::Write)) {
+                FD_SET(mSocketFd, &writeFds);
+            }
+
+            nfds = mSocketFd;
         }
-        if (events.has(SocketEvents::Write)) {
-            FD_SET(mSocketFd, &writeFds);
-        }
 
-        auto timeout = TimeUtils::convertToTimeval(mTimerDelay);
+        auto timeout = TimeUtils::convertToTimeval(std::min(mTimerDelay, absoluteDelay));
 
-        if (select(mSocketFd + 1, &readFds, &writeFds, nullptr, &timeout) < 0) {
+        if (select(nfds + 1, &readFds, &writeFds, nullptr, &timeout) < 0) {
             return;
         }
 
-        SocketEvents revents;
+        if (nullptr != mSocketEventHandler) {
+            SocketEvents revents;
 
-        if (FD_ISSET(mSocketFd, &readFds)) {
-            revents.set(SocketEvents::Read);
-        }
-        if (FD_ISSET(mSocketFd, &writeFds)) {
-            revents.set(SocketEvents::Write);
-        }
+            if (FD_ISSET(mSocketFd, &readFds)) {
+                revents.set(SocketEvents::Read);
+            }
+            if (FD_ISSET(mSocketFd, &writeFds)) {
+                revents.set(SocketEvents::Write);
+            }
 
-        mSocketEventHandler->handleSocketEvents(revents);
+            mSocketEventHandler->handleSocketEvents(revents);
+        }
     }
+}
+
+void BlockingClientWatcher::loop()
+{
+    loopFor(std::chrono::milliseconds::max());
 }
 
 void BlockingClientWatcher::watchTimer(TimerEventHandler* handler, std::chrono::milliseconds delay)

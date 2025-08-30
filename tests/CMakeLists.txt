@@ -8,7 +8,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-add_subdirectory(io)
 add_subdirectory(mocks)
 
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS *Test.cpp)
@@ -21,7 +20,6 @@ target_include_directories(tests
 
 target_link_libraries(tests
   PRIVATE
-    io
     mocks
     mobilus_gtw_client
     GTest::gtest_main

@@ -4,13 +4,12 @@
 
 #include <chrono>
 
-static constexpr int kInvalidSocketFd = -1;
-
 namespace jungi::mobilus_gtw_client::io {
 
 class BlockingClientWatcher final : public ClientWatcher {
 public:
     void loop();
+    void loopFor(std::chrono::milliseconds duration);
 
     void watchTimer(TimerEventHandler* handler, std::chrono::milliseconds delay) override;
     void unwatchTimer(TimerEventHandler* handler) override;
@@ -19,6 +18,8 @@ public:
     void unwatchSocket(SocketEventHandler* handler, int socketFd) override;
 
 private:
+    static constexpr int kInvalidSocketFd = -1;
+
     SocketEventHandler* mSocketEventHandler = nullptr;
     TimerEventHandler* mTimerEventHandler = nullptr;
     int mSocketFd = kInvalidSocketFd;
