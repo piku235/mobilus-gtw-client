@@ -1,5 +1,7 @@
 # 📙 C++ Client Library for Mobilus Cosmo GTW
 
+[![CI](https://github.com/piku235/mobilus-gtw-client/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/piku235/mobilus-gtw-client/actions/workflows/continuous-integration.yml)
+
 A lightweight, platform-agnostic C++ client library for interacting with the **Mobilus Cosmo GTW**.
 Designed to facilitate communication, control, and event subscription of Mobilus devices connected to the Cosmo GTW.
 
