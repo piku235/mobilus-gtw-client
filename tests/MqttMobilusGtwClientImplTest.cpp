@@ -73,14 +73,14 @@ auto callEventsStub()
     return callEvents;
 }
 
-auto sessionExpiresCallEventsStub()
+auto sessionExpiresCallEventsStub(int timeLeft = 60)
 {
     proto::CallEvents callEvents;
 
     auto event = callEvents.add_events();
     event->set_id(1);
     event->set_event_number(EventNumber::Session);
-    event->set_value("60"); // time left
+    event->set_value(std::to_string(timeLeft));
     event->set_platform(Platform::Host);
 
     return callEvents;
@@ -290,6 +290,26 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
     ASSERT_EQ(actualCallEvents.SerializeAsString(), expectedCallEvents.SerializeAsString());
 }
 
+TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
+{
+    Envelope actualEnvelope;
+
+    BlockingClientWatcher clientWatcher;
+    MqttMobilusGtwClientConfig config = clientConfig();
+    config.clientWatcher = &clientWatcher;
+    config.onRawMessage = [&](const Envelope& envelope) { actualEnvelope = envelope; };
+
+    MqttMobilusGtwClientImpl client(std::move(config));
+    MockMqttMobilusActor mobilusActor("localhost", 1883);
+
+    ASSERT_TRUE(client.connect());
+
+    mobilusActor.share(std::make_unique<proto::CallEvents>(callEventsStub()));
+    clientWatcher.loopFor(std::chrono::milliseconds(100));
+
+    ASSERT_EQ(MessageType::CallEvents, actualEnvelope.messageType);
+}
+
 TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 {
     BlockingClientWatcher clientWatcher;
@@ -377,6 +397,27 @@ TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
     clientWatcher.loopFor(std::chrono::milliseconds(100));
 
     ASSERT_TRUE(received);
+}
+
+TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
+{
+    int expectedTimeLeft = 15;
+    int actualTimeLeft = 0;
+
+    BlockingClientWatcher clientWatcher;
+    MqttMobilusGtwClientConfig config = clientConfig();
+    config.clientWatcher = &clientWatcher;
+    config.onSessionExpiring = [&](int timeLeft) { actualTimeLeft = timeLeft; };
+
+    MqttMobilusGtwClientImpl client(std::move(config));
+    MockMqttMobilusActor mobilusActor("localhost", 1883);
+
+    ASSERT_TRUE(client.connect());
+
+    mobilusActor.reply(std::make_unique<proto::CallEvents>(sessionExpiresCallEventsStub(15)));
+    clientWatcher.loopFor(std::chrono::milliseconds(100));
+
+    ASSERT_EQ(expectedTimeLeft, actualTimeLeft);
 }
 
 TEST(MqttMobilusGtwClientImplTest, ReconnectsOnExpiredSession)
