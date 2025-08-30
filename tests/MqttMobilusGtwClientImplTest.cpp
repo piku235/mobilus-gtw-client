@@ -353,7 +353,7 @@ TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
     ASSERT_FALSE(subscribed);
 }
 
-TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnSessionNearExpire)
+TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
 {
     BlockingClientWatcher clientWatcher;
     MqttMobilusGtwClientConfig config = clientConfig();
