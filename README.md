@@ -20,11 +20,7 @@ Use this client to:
 - OpenSSL v3
 - Mosquitto v2.x (v1.x optionally supported)
 - Google Protocol Buffers (protobuf) v2.6.1 (included)
-
-## Limitations
-
-- The client currently supports **single-threaded** use only.  
-- Multi-threaded support and concurrency handling are planned for future releases.
+- Not thread-safe: intended for single-threaded applications only
 
 ## Build
 
