@@ -44,6 +44,7 @@ public:
     };
 
     struct Command {
+        virtual ~Command() = default;
         virtual Commands commandId() const = 0;
     };
 
