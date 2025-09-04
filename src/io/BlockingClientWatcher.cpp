@@ -16,7 +16,7 @@ void BlockingClientWatcher::loopFor(std::chrono::milliseconds duration)
         return;
     }
 
-    const auto untilTime = steady_clock::now() + duration;
+    const auto untilTime = std::chrono::milliseconds::max() == duration ? steady_clock::time_point::max() : steady_clock::now() + duration;
     auto lastTimerAt = steady_clock::now();
 
     fd_set readFds;
