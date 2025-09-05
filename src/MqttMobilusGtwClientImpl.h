@@ -8,7 +8,6 @@
 #include "jungi/mobilus_gtw_client/MqttMobilusGtwClient.h"
 #include "jungi/mobilus_gtw_client/MqttMobilusGtwClientConfig.h"
 #include "jungi/mobilus_gtw_client/io/SocketEventHandler.h"
-#include "jungi/mobilus_gtw_client/io/TimerEventHandler.h"
 
 #include <mosquitto.h>
 
@@ -25,8 +24,7 @@ namespace proto {
 }
 
 class MqttMobilusGtwClientImpl final : public MqttMobilusGtwClient,
-                                       public io::SocketEventHandler,
-                                       public io::TimerEventHandler {
+                                       public io::SocketEventHandler {
 public:
     using Config = MqttMobilusGtwClientConfig;
 
@@ -44,9 +42,6 @@ public:
     // SocketEventHandler
     io::SocketEvents socketEvents() override;
     void handleSocketEvents(io::SocketEvents revents) override;
-
-    // TimerEventHandler
-    void handleTimerEvent() override;
 
 private:
     struct QueuedMessage {
@@ -89,6 +84,8 @@ private:
 
     static void onConnectCallback(mosquitto* mosq, void* obj, int reasonCode);
     static void onMessageCallback(mosquitto* mosq, void* obj, const mosquitto_message* mosqMessage);
+    static void reconnectTimerCallback(void* callbackData) { reinterpret_cast<MqttMobilusGtwClientImpl*>(callbackData)->reconnect(); };
+    static void miscTimerCallback(void* callbackData) { reinterpret_cast<MqttMobilusGtwClientImpl*>(callbackData)->handleMisc(); };
 
     int connectMqtt();
     void reconnect();
@@ -100,9 +97,10 @@ private:
     void handleClientCallEvents(const proto::CallEvents& callEvents);
     void handleLostConnection(int rc);
     void handleInvalidSession();
+    void handleMisc();
     void dispatchQueuedMessages();
     void clearSession();
-    void scheduleTimer();
+    void scheduleMisc();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     std::unique_ptr<crypto::Encryptor> encryptorFor(crypto::bytes key);
 

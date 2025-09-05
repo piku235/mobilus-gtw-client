@@ -39,7 +39,7 @@ void ClientCommonCommand::addGeneralOptions(cxxopts::Options& opts)
     // clang-format on
 }
 
-std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(cxxopts::ParseResult r, io::ClientWatcher* clientWatcher)
+std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(cxxopts::ParseResult r, io::EventLoop* loop)
 {
     static StderrLogger logger;
 
@@ -48,8 +48,8 @@ std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(
     config.keepAliveMessage = std::make_unique<proto::DeviceSettingsRequest>();
     config.logger = &logger;
 
-    if (nullptr != clientWatcher) {
-        config.clientWatcher = clientWatcher;
+    if (nullptr != loop) {
+        config.loop = loop;
     }
 
     if (r.count("verbose")) {
