@@ -1,7 +1,6 @@
 #include "MqttMobilusGtwClientImpl.h"
 #include "jungi/mobilus_gtw_client/ErrorCode.h"
 #include "jungi/mobilus_gtw_client/EventNumber.h"
-#include "jungi/mobilus_gtw_client/MqttMobilusGtwClientConfig.h"
 #include "jungi/mobilus_gtw_client/Platform.h"
 #include "jungi/mobilus_gtw_client/SessionInformation.h"
 #include "jungi/mobilus_gtw_client/io/SelectEventLoop.h"
@@ -27,13 +26,8 @@ using jungi::mobilus_gtw_client::tests::mocks::MockMqttMobilusActor;
 
 namespace {
 
-auto clientConfig()
-{
-    MqttMobilusGtwClientConfig config("localhost", 1883, "admin", "admin");
-    config.responseTimeout = std::chrono::milliseconds(100);
-
-    return config;
-}
+static const auto kDsn = MqttDsn::from("mqtt://localhost:1883?mobilus_username=admin&mobilus_password=admin").value();
+static constexpr std::chrono::milliseconds kTimeout(100);
 
 void fakeMqttBroker(std::condition_variable* cv, std::mutex* mutex, bool* ready)
 {
@@ -114,7 +108,7 @@ auto devicesListResponseStub()
 
 TEST(MqttMobilusGtwClientImplTest, Connects)
 {
-    MqttMobilusGtwClientImpl client(clientConfig());
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     auto r = client.connect();
@@ -130,10 +124,7 @@ TEST(MqttMobilusGtwClientImplTest, ConnectionTimedOut)
     std::mutex mutex;
     std::condition_variable cv;
 
-    MqttMobilusGtwClientConfig config = { "localhost", 2883, "admin", "admin" };
-    config.connectTimeout = std::chrono::milliseconds(1);
-
-    MqttMobilusGtwClientImpl client(std::move(config));
+    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://localhost:2883?mobilus_username=admin&mobilus_password=admin").value(), std::chrono::milliseconds(1), kTimeout);
     std::thread fakeBroker(fakeMqttBroker, &cv, &mutex, &ready);
 
     std::unique_lock<std::mutex> lock(mutex);
@@ -157,10 +148,7 @@ TEST(MqttMobilusGtwClientImplTest, ConnectionTimedOut)
 
 TEST(MqttMobilusGtwClientImplTest, LoginTimedOut)
 {
-    auto config = clientConfig();
-    config.responseTimeout = std::chrono::milliseconds(1);
-
-    MqttMobilusGtwClientImpl client(std::move(config));
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, std::chrono::milliseconds(1));
 
     auto r = client.connect();
 
@@ -171,7 +159,7 @@ TEST(MqttMobilusGtwClientImplTest, LoginTimedOut)
 
 TEST(MqttMobilusGtwClientImplTest, LoginFailed)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 1883, "admin", "123456" });
+    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://localhost:1883?mobilus_username=admin&mobilus_password=123456").value(), kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     auto r = client.connect();
@@ -183,7 +171,7 @@ TEST(MqttMobilusGtwClientImplTest, LoginFailed)
 
 TEST(MqttMobilusGtwClientImplTest, HostCannotBeResolved)
 {
-    MqttMobilusGtwClientImpl client({ "255.255.255.255", 1883, "admin", "admin" });
+    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://255.255.255.255:1883?mobilus_username=admin&mobilus_password=admin").value(), kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     auto r = client.connect();
@@ -195,7 +183,7 @@ TEST(MqttMobilusGtwClientImplTest, HostCannotBeResolved)
 
 TEST(MqttMobilusGtwClientImplTest, InvalidPort)
 {
-    MqttMobilusGtwClientImpl client({ "localhost", 2883, "admin", "admin" });
+    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://localhost:2883?mobilus_username=admin&mobilus_password=admin").value(), kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     auto r = client.connect();
@@ -207,7 +195,7 @@ TEST(MqttMobilusGtwClientImplTest, InvalidPort)
 
 TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
 {
-    MqttMobilusGtwClientImpl client(clientConfig());
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     ASSERT_TRUE(client.connect());
@@ -217,7 +205,7 @@ TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
 
 TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
 {
-    MqttMobilusGtwClientImpl client(clientConfig());
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     proto::DevicesListResponse expectedResponse = devicesListResponseStub();
@@ -234,7 +222,7 @@ TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 {
-    MqttMobilusGtwClientImpl client(clientConfig());
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::CurrentStateResponse>());
@@ -251,7 +239,7 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)
 {
-    MqttMobilusGtwClientImpl client(clientConfig());
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     ASSERT_TRUE(client.connect());
@@ -267,10 +255,7 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)
 TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientConfig config = clientConfig();
-    config.loop = &loop;
-
-    MqttMobilusGtwClientImpl client(std::move(config));
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout, loop);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     proto::CallEvents expectedCallEvents = callEventsStub();
@@ -294,11 +279,9 @@ TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
     Envelope actualEnvelope;
 
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientConfig config = clientConfig();
-    config.loop = &loop;
-    config.onRawMessage = [&](const Envelope& envelope) { actualEnvelope = envelope; };
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout, loop);
+    client.onRawMessage([&](const Envelope& envelope) { actualEnvelope = envelope; });
 
-    MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     ASSERT_TRUE(client.connect());
@@ -312,10 +295,7 @@ TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
 TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientConfig config = clientConfig();
-    config.loop = &loop;
-
-    MqttMobilusGtwClientImpl client(std::move(config));
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout, loop);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     std::vector<std::unique_ptr<google::protobuf::MessageLite>> subscribedMessages;
@@ -349,10 +329,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientConfig config = clientConfig();
-    config.loop = &loop;
-
-    MqttMobilusGtwClientImpl client(std::move(config));
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout, loop);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(devicesListResponseStub()));
@@ -375,11 +352,9 @@ TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
 TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientConfig config = clientConfig();
-    config.loop = &loop;
-    config.keepAliveMessage = std::make_unique<proto::DevicesListRequest>();
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout, loop);
+    client.useKeepAliveMessage(std::make_unique<proto::DevicesListRequest>());
 
-    MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(devicesListResponseStub()));
@@ -404,11 +379,9 @@ TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
     int actualTimeLeft = 0;
 
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientConfig config = clientConfig();
-    config.loop = &loop;
-    config.onSessionExpiring = [&](int timeLeft) { actualTimeLeft = timeLeft; };
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout, loop);
+    client.onSessionExpiring([&](int timeLeft) { actualTimeLeft = timeLeft; });
 
-    MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     ASSERT_TRUE(client.connect());
@@ -422,10 +395,7 @@ TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
 TEST(MqttMobilusGtwClientImplTest, ReconnectsOnExpiredSession)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientConfig config = clientConfig();
-    config.loop = &loop;
-
-    MqttMobilusGtwClientImpl client(std::move(config));
+    MqttMobilusGtwClientImpl client(kDsn, kTimeout, kTimeout, loop);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     ASSERT_TRUE(client.connect());

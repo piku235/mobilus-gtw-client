@@ -22,9 +22,13 @@ using std::chrono::steady_clock;
 
 namespace jungi::mobilus_gtw_client {
 
-MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(Config config)
+MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(MqttDsn dsn, std::chrono::milliseconds conenctTimeout, std::chrono::milliseconds responseTimeout, io::EventLoop& loop, logging::Logger& logger)
     : mClientId(ClientId::unique())
-    , mConfig(std::move(config))
+    , mDsn(std::move(dsn))
+    , mConnectTimeout(conenctTimeout)
+    , mResponseTimeout(responseTimeout)
+    , mLoop(loop)
+    , mLogger(logger)
 {
     static LibInit libInit;
 }
@@ -37,6 +41,21 @@ MqttMobilusGtwClientImpl::~MqttMobilusGtwClientImpl()
         mosquitto_destroy(mMosq);
         mMosq = nullptr;
     }
+}
+
+void MqttMobilusGtwClientImpl::useKeepAliveMessage(std::unique_ptr<google::protobuf::MessageLite> message)
+{
+    mKeepAliveMessage = std::move(message);
+}
+
+void MqttMobilusGtwClientImpl::onSessionExpiring(SessionExpiringCallback callback)
+{
+    mSessionExpiringCallback = std::move(callback);
+}
+
+void MqttMobilusGtwClientImpl::onRawMessage(RawMessageCallback callback)
+{
+    mRawMessageCallback = std::move(callback);
 }
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
@@ -53,9 +72,9 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     }
 
     mConnected = true;
-    mConfig.loop->watchSocket(mosquitto_socket(mMosq), this);
+    mLoop.watchSocket(mosquitto_socket(mMosq), this);
 
-    SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.connectTimeout);
+    SelectCondition cond(*this, mosquitto_socket(mMosq), mConnectTimeout);
     ConnectCallbackContext connCallbackData = { cond, -1 };
 
     mosquitto_user_data_set(mMosq, &connCallbackData);
@@ -68,7 +87,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
         return logAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
-    mConfig.logger->info("MQTT connected to broker");
+    mLogger.info("MQTT connected to broker");
 
     mosquitto_user_data_set(mMosq, this); // use self from now, needed for message callback
     mosquitto_message_callback_set(mMosq, onMessageCallback);
@@ -97,7 +116,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     }
 
     scheduleMisc();
-    mConfig.logger->info("Connected to mobilus");
+    mLogger.info("Connected to mobilus");
 
     return {};
 }
@@ -107,9 +126,9 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::disconnect()
     clearSession();
 
     if (mConnected) {
-        mConfig.loop->unwatchSocket(mosquitto_socket(mMosq));
-        mConfig.loop->stopTimer(reconnectTimerCallback, this);
-        mConfig.loop->stopTimer(miscTimerCallback, this);
+        mLoop.unwatchSocket(mosquitto_socket(mMosq));
+        mLoop.stopTimer(reconnectTimerCallback, this);
+        mLoop.stopTimer(miscTimerCallback, this);
 
         int rc = mosquitto_disconnect(mMosq);
         mConnected = false;
@@ -133,7 +152,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
         return e;
     }
 
-    SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.responseTimeout);
+    SelectCondition cond(*this, mosquitto_socket(mMosq), mResponseTimeout);
     ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response };
 
     mExpectedMessage = &expectedMessage;
@@ -267,9 +286,9 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
 {
     proto::LoginRequest request;
     proto::LoginResponse response;
-    auto hashedPassword = crypto::sha256(mConfig.password);
+    auto hashedPassword = crypto::sha256(mDsn.params().at("mobilus_password"));
 
-    request.set_login(mConfig.username);
+    request.set_login(mDsn.params().at("mobilus_username"));
     request.set_password(hashedPassword.data(), hashedPassword.size());
 
     mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
@@ -321,40 +340,40 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
 {
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
     if (!envelope) {
-        mConfig.logger->error("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen));
+        mLogger.error("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen));
         return;
     }
 
-    mConfig.onRawMessage(*envelope);
+    mRawMessageCallback(*envelope);
 
     if (Envelope::ResponseStatus::InvalidSession == envelope->responseStatus) {
         handleInvalidSession();
 
-        mConfig.logger->error("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
+        mLogger.error("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
         return;
     }
 
     if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
-        mConfig.logger->error("Bad response from mobilus: " + std::to_string(envelope->responseStatus));
+        mLogger.error("Bad response from mobilus: " + std::to_string(envelope->responseStatus));
         return;
     }
 
     auto& encryptor = MessageType::CallEvents == envelope->messageType ? mPublicEncryptor : mPrivateEncryptor;
     if (!encryptor) {
-        mConfig.logger->error("Missing encryptor for message type: " + std::to_string(envelope->messageType));
+        mLogger.error("Missing encryptor for message type: " + std::to_string(envelope->messageType));
         return;
     }
 
     auto message = ProtoUtils::newMessageFor(envelope->messageType);
     if (!message) {
-        mConfig.logger->error("Missing proto for message type: " + std::to_string(envelope->messageType));
+        mLogger.error("Missing proto for message type: " + std::to_string(envelope->messageType));
         return;
     }
 
     auto decryptedBody = encryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
 
     if (!message->ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
-        mConfig.logger->error("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
+        mLogger.error("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
         return;
     }
 
@@ -373,7 +392,7 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
         return;
     }
 
-    mConfig.onRawMessage(*envelope);
+    mRawMessageCallback(*envelope);
 
     expectedMessage.responseStatus = envelope->responseStatus;
 
@@ -434,10 +453,10 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
     int remaningTime = static_cast<int>(strtol(event.value().c_str(), &end, 10));
 
     if (!event.value().empty() && *end == '\0') {
-        mConfig.onSessionExpiring(remaningTime);
+        mSessionExpiringCallback(remaningTime);
 
-        if (mConfig.keepAliveMessage) {
-            (void)send(*mConfig.keepAliveMessage);
+        if (mKeepAliveMessage) {
+            (void)send(*mKeepAliveMessage);
         }
     }
 }
@@ -450,7 +469,7 @@ void MqttMobilusGtwClientImpl::handleInvalidSession()
 
     (void)disconnect();
 
-    mConfig.loop->startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
+    mLoop.startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
     mReconnecting = true;
 }
 
@@ -460,10 +479,10 @@ void MqttMobilusGtwClientImpl::handleLostConnection(int rc)
         return;
     }
 
-    mConfig.logger->error("MQTT connection lost: " + std::string(mosquitto_strerror(rc)));
+    mLogger.error("MQTT connection lost: " + std::string(mosquitto_strerror(rc)));
 
-    mConfig.loop->unwatchSocket(mosquitto_socket(mMosq));
-    mConfig.loop->startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
+    mLoop.unwatchSocket(mosquitto_socket(mMosq));
+    mLoop.startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
 
     mConnected = false;
     mReconnecting = true;
@@ -484,8 +503,8 @@ int MqttMobilusGtwClientImpl::connectMqtt()
 
     int rc;
 
-    if (mConfig.cafile) {
-        rc = mosquitto_tls_set(mMosq, mConfig.cafile->c_str(), nullptr, nullptr, nullptr, nullptr);
+    if (mDsn.isSecure()) {
+        rc = mosquitto_tls_set(mMosq, mDsn.params().at("ca_file").c_str(), nullptr, nullptr, nullptr, nullptr);
         if (MOSQ_ERR_SUCCESS != rc) {
             return rc;
         }
@@ -498,7 +517,8 @@ int MqttMobilusGtwClientImpl::connectMqtt()
 
     mosquitto_connect_callback_set(mMosq, onConnectCallback);
 
-    rc = mosquitto_connect(mMosq, mConfig.host.c_str(), static_cast<int>(mConfig.port), kKeepAliveIntervalSecs);
+    rc = mosquitto_connect(mMosq, mDsn.host().c_str(), static_cast<int>(*mDsn.port()), kKeepAliveIntervalSecs);
+    // mosquitto_username_pw_set(mMosq, mDsn.username().has_value() ? mDsn.username().value().c_str() : nullptr, mDsn.password().has_value() ? mDsn.password().value().c_str() : nullptr);
 
     return rc;
 }
@@ -509,11 +529,11 @@ void MqttMobilusGtwClientImpl::reconnect()
         return;
     }
 
-    mConfig.logger->info("Reconnecting to MQTT broker and mobilus");
+    mLogger.info("Reconnecting to MQTT broker and mobilus");
 
     if (!connect()) {
         mReconnectDelay.next();
-        mConfig.loop->startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
+        mLoop.startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
 
         return;
     }
@@ -548,7 +568,7 @@ void MqttMobilusGtwClientImpl::clearSession()
 
 void MqttMobilusGtwClientImpl::scheduleMisc()
 {
-    mConfig.loop->startTimer(std::chrono::seconds(1), miscTimerCallback, this); // due to mosquitto_loop_misc() PINGREQ
+    mLoop.startTimer(std::chrono::seconds(1), miscTimerCallback, this); // due to mosquitto_loop_misc() PINGREQ
 }
 
 Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLite& message)

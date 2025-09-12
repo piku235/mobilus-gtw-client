@@ -5,9 +5,13 @@
 #include "SelectCondition.h"
 #include "crypto/Encryptor.h"
 #include "jungi/mobilus_gtw_client/Envelope.h"
+#include "jungi/mobilus_gtw_client/MqttDsn.h"
 #include "jungi/mobilus_gtw_client/MqttMobilusGtwClient.h"
-#include "jungi/mobilus_gtw_client/MqttMobilusGtwClientConfig.h"
 #include "jungi/mobilus_gtw_client/io/SocketEventHandler.h"
+#include "jungi/mobilus_gtw_client/io/EventLoop.h"
+#include "jungi/mobilus_gtw_client/io/NullEventLoop.h"
+#include "jungi/mobilus_gtw_client/logging/Logger.h"
+#include "jungi/mobilus_gtw_client/logging/NullLogger.h"
 
 #include <mosquitto.h>
 
@@ -16,6 +20,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <chrono>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -26,10 +31,12 @@ namespace proto {
 class MqttMobilusGtwClientImpl final : public MqttMobilusGtwClient,
                                        public io::SocketEventHandler {
 public:
-    using Config = MqttMobilusGtwClientConfig;
-
-    MqttMobilusGtwClientImpl(Config config);
+    MqttMobilusGtwClientImpl(MqttDsn dsn, std::chrono::milliseconds conenctTimeout, std::chrono::milliseconds responseTimeout, io::EventLoop& loop = io::NullEventLoop::instance(), logging::Logger& logger = logging::NullLogger::instance());
     ~MqttMobilusGtwClientImpl();
+
+    void useKeepAliveMessage(std::unique_ptr<google::protobuf::MessageLite> message);
+    void onSessionExpiring(SessionExpiringCallback callback);
+    void onRawMessage(RawMessageCallback callback);
 
     Result<> connect() override;
     Result<> disconnect() override;
@@ -71,7 +78,14 @@ private:
 
     mosquitto* mMosq = nullptr;
     ClientId mClientId;
-    Config mConfig;
+    MqttDsn mDsn;
+    std::chrono::milliseconds mConnectTimeout;
+    std::chrono::milliseconds mResponseTimeout;
+    io::EventLoop& mLoop;
+    logging::Logger& mLogger;
+    std::unique_ptr<google::protobuf::MessageLite> mKeepAliveMessage;
+    SessionExpiringCallback mSessionExpiringCallback = [](int) {};
+    RawMessageCallback mRawMessageCallback = [](const Envelope&) {};
     std::queue<QueuedMessage> mMessageQueue;
     MessageBus mMessageBus;
     std::unique_ptr<crypto::Encryptor> mPublicEncryptor;
@@ -106,7 +120,7 @@ private:
 
     tl::unexpected<Error> logAndReturn(Error error)
     {
-        mConfig.logger->error(error.message());
+        mLogger.error(error.message());
         return tl::unexpected(std::move(error));
     }
 };

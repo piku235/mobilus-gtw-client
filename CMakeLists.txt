@@ -57,6 +57,7 @@ add_library(mobilus_gtw_client
   src/ClientId.cpp
   src/Envelope.cpp
   src/SelectCondition.cpp
+  src/MqttDsn.cpp
   src/MqttMobilusGtwClient.cpp
   src/MqttMobilusGtwClientImpl.cpp
 )

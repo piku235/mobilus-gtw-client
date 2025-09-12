@@ -1,6 +1,7 @@
 #include "ClientCommonCommand.h"
 #include "Utils.h"
 #include "config.h"
+#include "jungi/mobilus_gtw_client/MqttDsn.h"
 #include "jungi/mobilus_gtw_client/proto/DeviceSettingsRequest.pb.h"
 #include "mobilus_gtw_client/StderrLogger.h"
 
@@ -42,21 +43,27 @@ void ClientCommonCommand::addGeneralOptions(cxxopts::Options& opts)
 std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(cxxopts::ParseResult r, io::EventLoop* loop)
 {
     static StderrLogger logger;
+    auto builder = MqttMobilusGtwClient::builder();
 
-    MqttMobilusGtwClientConfig config(r["host"].as<std::string>(), kMobilusMqttPort, r["username"].as<std::string>(), r["password"].as<std::string>(), ::kMobilusCaFile);
+    MqttDsn::QueryParams params;
+    params["mobilus_username"] = r["username"].as<std::string>;
+    params["mobilus_password"] = r["password"].as<std::string>;
+    params["ca_file"] = ::kMobilusCaFile;
 
-    config.keepAliveMessage = std::make_unique<proto::DeviceSettingsRequest>();
-    config.logger = &logger;
+    builder
+        .dsn({ r["host"].as<std::string>(), ::kMobilusMqttPort, {}, {}, true, std::move(params) })
+        .useKeepAliveMessage(std::make_unique<proto::DeviceSettingsRequest>())
+        .useLogger(&logger);
 
     if (nullptr != loop) {
-        config.loop = loop;
+        builder.attachTo(loop);
     }
 
     if (r.count("verbose")) {
-        config.onRawMessage = printRawMessage;
+        builder.onRawMessage(printRawMessage);
     }
 
-    return MqttMobilusGtwClient::with(std::move(config));
+    return builder.build();
 }
 
 }
