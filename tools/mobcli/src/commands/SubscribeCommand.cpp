@@ -1,6 +1,6 @@
 #include "SubscribeCommand.h"
 #include "jungi/mobilus_gtw_client/MessageType.h"
-#include "jungi/mobilus_gtw_client/io/BlockingClientWatcher.h"
+#include "jungi/mobilus_gtw_client/io/SelectEventLoop.h"
 #include "jungi/mobilus_gtw_client/proto/CallEvents.pb.h"
 #include "jungi/mobilus_gtw_client/proto/DeviceSettingsRequest.pb.h"
 
@@ -38,8 +38,8 @@ int SubscribeCommand::execute(int argc, char* argv[])
         return 0;
     }
 
-    io::BlockingClientWatcher clientWatcher;
-    auto client = mqttMobilusGtwClient(r, &clientWatcher);
+    io::SelectEventLoop loop;
+    auto client = mqttMobilusGtwClient(r, &loop);
 
     if (!client->connect()) {
         return 1;
@@ -52,7 +52,7 @@ int SubscribeCommand::execute(int argc, char* argv[])
     client->messageBus().subscribe<proto::CallEvents>(MessageType::CallEvents, printCallEvents);
 
     std::cout << "listening..." << std::endl;
-    clientWatcher.loop();
+    loop.run();
 
     return 0;
 }

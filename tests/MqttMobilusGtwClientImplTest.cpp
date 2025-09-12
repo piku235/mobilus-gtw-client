@@ -4,7 +4,7 @@
 #include "jungi/mobilus_gtw_client/MqttMobilusGtwClientConfig.h"
 #include "jungi/mobilus_gtw_client/Platform.h"
 #include "jungi/mobilus_gtw_client/SessionInformation.h"
-#include "jungi/mobilus_gtw_client/io/BlockingClientWatcher.h"
+#include "jungi/mobilus_gtw_client/io/SelectEventLoop.h"
 #include "jungi/mobilus_gtw_client/proto/CallEvents.pb.h"
 #include "jungi/mobilus_gtw_client/proto/CurrentStateResponse.pb.h"
 #include "jungi/mobilus_gtw_client/proto/DevicesListRequest.pb.h"
@@ -23,7 +23,6 @@
 #include <vector>
 
 using namespace jungi::mobilus_gtw_client;
-using jungi::mobilus_gtw_client::io::BlockingClientWatcher;
 using jungi::mobilus_gtw_client::tests::mocks::MockMqttMobilusActor;
 
 namespace {
@@ -267,9 +266,9 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)
 
 TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
 {
-    BlockingClientWatcher clientWatcher;
+    io::SelectEventLoop loop;
     MqttMobilusGtwClientConfig config = clientConfig();
-    config.clientWatcher = &clientWatcher;
+    config.loop = &loop;
 
     MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
@@ -285,7 +284,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
     ASSERT_TRUE(client.connect());
 
     mobilusActor.share(std::make_unique<proto::CallEvents>(expectedCallEvents));
-    clientWatcher.loopFor(std::chrono::milliseconds(100));
+    loop.runFor(std::chrono::milliseconds(100));
 
     ASSERT_EQ(actualCallEvents.SerializeAsString(), expectedCallEvents.SerializeAsString());
 }
@@ -294,9 +293,9 @@ TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
 {
     Envelope actualEnvelope;
 
-    BlockingClientWatcher clientWatcher;
+    io::SelectEventLoop loop;
     MqttMobilusGtwClientConfig config = clientConfig();
-    config.clientWatcher = &clientWatcher;
+    config.loop = &loop;
     config.onRawMessage = [&](const Envelope& envelope) { actualEnvelope = envelope; };
 
     MqttMobilusGtwClientImpl client(std::move(config));
@@ -305,16 +304,16 @@ TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
     ASSERT_TRUE(client.connect());
 
     mobilusActor.share(std::make_unique<proto::CallEvents>(callEventsStub()));
-    clientWatcher.loopFor(std::chrono::milliseconds(100));
+    loop.runFor(std::chrono::milliseconds(100));
 
     ASSERT_EQ(MessageType::CallEvents, actualEnvelope.messageType);
 }
 
 TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 {
-    BlockingClientWatcher clientWatcher;
+    io::SelectEventLoop loop;
     MqttMobilusGtwClientConfig config = clientConfig();
-    config.clientWatcher = &clientWatcher;
+    config.loop = &loop;
 
     MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
@@ -339,7 +338,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
     mobilusActor.share(std::make_unique<proto::CallEvents>(expectedCallEvents));
     mobilusActor.reply(std::make_unique<proto::DevicesListResponse>(expectedDeviceList));
 
-    clientWatcher.loopFor(std::chrono::milliseconds(100));
+    loop.runFor(std::chrono::milliseconds(100));
 
     ASSERT_EQ(2, subscribedMessages.size());
     ASSERT_EQ(expectedCallEvents.SerializeAsString(), actualCallEvents.SerializeAsString());
@@ -349,9 +348,9 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 
 TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
 {
-    BlockingClientWatcher clientWatcher;
+    io::SelectEventLoop loop;
     MqttMobilusGtwClientConfig config = clientConfig();
-    config.clientWatcher = &clientWatcher;
+    config.loop = &loop;
 
     MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
@@ -368,16 +367,16 @@ TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
     proto::DevicesListResponse response;
     ASSERT_TRUE(client.sendRequest(proto::DevicesListRequest(), response));
 
-    clientWatcher.loopFor(std::chrono::milliseconds(100));
+    loop.runFor(std::chrono::milliseconds(100));
 
     ASSERT_FALSE(subscribed);
 }
 
 TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
 {
-    BlockingClientWatcher clientWatcher;
+    io::SelectEventLoop loop;
     MqttMobilusGtwClientConfig config = clientConfig();
-    config.clientWatcher = &clientWatcher;
+    config.loop = &loop;
     config.keepAliveMessage = std::make_unique<proto::DevicesListRequest>();
 
     MqttMobilusGtwClientImpl client(std::move(config));
@@ -394,7 +393,7 @@ TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
     ASSERT_TRUE(client.connect());
 
     mobilusActor.reply(std::make_unique<proto::CallEvents>(sessionExpiresCallEventsStub()));
-    clientWatcher.loopFor(std::chrono::milliseconds(100));
+    loop.runFor(std::chrono::milliseconds(100));
 
     ASSERT_TRUE(received);
 }
@@ -404,9 +403,9 @@ TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
     int expectedTimeLeft = 15;
     int actualTimeLeft = 0;
 
-    BlockingClientWatcher clientWatcher;
+    io::SelectEventLoop loop;
     MqttMobilusGtwClientConfig config = clientConfig();
-    config.clientWatcher = &clientWatcher;
+    config.loop = &loop;
     config.onSessionExpiring = [&](int timeLeft) { actualTimeLeft = timeLeft; };
 
     MqttMobilusGtwClientImpl client(std::move(config));
@@ -415,16 +414,16 @@ TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
     ASSERT_TRUE(client.connect());
 
     mobilusActor.reply(std::make_unique<proto::CallEvents>(sessionExpiresCallEventsStub(15)));
-    clientWatcher.loopFor(std::chrono::milliseconds(100));
+    loop.runFor(std::chrono::milliseconds(100));
 
     ASSERT_EQ(expectedTimeLeft, actualTimeLeft);
 }
 
 TEST(MqttMobilusGtwClientImplTest, ReconnectsOnExpiredSession)
 {
-    BlockingClientWatcher clientWatcher;
+    io::SelectEventLoop loop;
     MqttMobilusGtwClientConfig config = clientConfig();
-    config.clientWatcher = &clientWatcher;
+    config.loop = &loop;
 
     MqttMobilusGtwClientImpl client(std::move(config));
     MockMqttMobilusActor mobilusActor("localhost", 1883);
@@ -433,7 +432,7 @@ TEST(MqttMobilusGtwClientImplTest, ReconnectsOnExpiredSession)
     SessionInformation sessionInfo = *client.sessionInfo();
 
     mobilusActor.reply(std::make_unique<proto::CallEvents>(sessionExpiredCallEventsStub()));
-    clientWatcher.loopFor(std::chrono::milliseconds(150));
+    loop.runFor(std::chrono::milliseconds(150));
 
     ASSERT_TRUE(client.sessionInfo().has_value());
     ASSERT_NE(sessionInfo.publicKey, client.sessionInfo()->publicKey);

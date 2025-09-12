@@ -2,7 +2,7 @@
 
 #include "Envelope.h"
 #include "Error.h"
-#include "io/NullClientWatcher.h"
+#include "io/NullEventLoop.h"
 #include "logging/NullLogger.h"
 
 #include <google/protobuf/message_lite.h>
@@ -26,7 +26,7 @@ struct MqttMobilusGtwClientConfig final {
     const std::string password;
     std::optional<std::string> cafile;
     std::unique_ptr<google::protobuf::MessageLite> keepAliveMessage;
-    io::ClientWatcher* clientWatcher = &io::NullClientWatcher::instance();
+    io::EventLoop* loop = &io::NullEventLoop::instance();
     logging::Logger* logger = &logging::NullLogger::instance();
     std::chrono::milliseconds connectTimeout = std::chrono::seconds(1);
     std::chrono::milliseconds responseTimeout = std::chrono::seconds(5);

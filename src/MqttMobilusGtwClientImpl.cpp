@@ -53,7 +53,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     }
 
     mConnected = true;
-    mConfig.clientWatcher->watchSocket(this, mosquitto_socket(mMosq));
+    mConfig.loop->watchSocket(mosquitto_socket(mMosq), this);
 
     SelectCondition cond(*this, mosquitto_socket(mMosq), mConfig.connectTimeout);
     ConnectCallbackContext connCallbackData = { cond, -1 };
@@ -96,7 +96,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
         return e;
     }
 
-    scheduleTimer();
+    scheduleMisc();
     mConfig.logger->info("Connected to mobilus");
 
     return {};
@@ -107,8 +107,9 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::disconnect()
     clearSession();
 
     if (mConnected) {
-        mConfig.clientWatcher->unwatchSocket(this, mosquitto_socket(mMosq));
-        mConfig.clientWatcher->unwatchTimer(this);
+        mConfig.loop->unwatchSocket(mosquitto_socket(mMosq));
+        mConfig.loop->stopTimer(reconnectTimerCallback, this);
+        mConfig.loop->stopTimer(miscTimerCallback, this);
 
         int rc = mosquitto_disconnect(mMosq);
         mConnected = false;
@@ -197,10 +198,9 @@ void MqttMobilusGtwClientImpl::handleSocketEvents(io::SocketEvents revents)
     }
 }
 
-void MqttMobilusGtwClientImpl::handleTimerEvent()
+void MqttMobilusGtwClientImpl::handleMisc()
 {
     if (!mConnected) {
-        reconnect();
         return;
     }
 
@@ -211,7 +211,7 @@ void MqttMobilusGtwClientImpl::handleTimerEvent()
         return;
     }
 
-    scheduleTimer();
+    scheduleMisc();
 }
 
 void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto*, void* obj, int reasonCode)
@@ -450,7 +450,7 @@ void MqttMobilusGtwClientImpl::handleInvalidSession()
 
     (void)disconnect();
 
-    mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
+    mConfig.loop->startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
     mReconnecting = true;
 }
 
@@ -462,8 +462,8 @@ void MqttMobilusGtwClientImpl::handleLostConnection(int rc)
 
     mConfig.logger->error("MQTT connection lost: " + std::string(mosquitto_strerror(rc)));
 
-    mConfig.clientWatcher->unwatchSocket(this, mosquitto_socket(mMosq));
-    mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
+    mConfig.loop->unwatchSocket(mosquitto_socket(mMosq));
+    mConfig.loop->startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
 
     mConnected = false;
     mReconnecting = true;
@@ -513,7 +513,7 @@ void MqttMobilusGtwClientImpl::reconnect()
 
     if (!connect()) {
         mReconnectDelay.next();
-        mConfig.clientWatcher->watchTimer(this, mReconnectDelay.delay());
+        mConfig.loop->startTimer(mReconnectDelay.delay(), reconnectTimerCallback, this);
 
         return;
     }
@@ -546,9 +546,9 @@ void MqttMobilusGtwClientImpl::clearSession()
     mSessionInfo.reset();
 }
 
-void MqttMobilusGtwClientImpl::scheduleTimer()
+void MqttMobilusGtwClientImpl::scheduleMisc()
 {
-    mConfig.clientWatcher->watchTimer(this, std::chrono::seconds(1)); // due to mosquitto_loop_misc() PINGREQ
+    mConfig.loop->startTimer(std::chrono::seconds(1), miscTimerCallback, this); // due to mosquitto_loop_misc() PINGREQ
 }
 
 Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLite& message)
