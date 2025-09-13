@@ -11,6 +11,7 @@ class SelectEventLoop final : public EventLoop {
 public:
     void run();
     void runFor(std::chrono::milliseconds duration);
+    void stop();
 
     void startTimer(std::chrono::milliseconds delay, TimerCallback callback, void* callbackData) override;
     void stopTimer(TimerCallback callback, void* callbackData) override;
@@ -40,6 +41,7 @@ private:
 
     Timer mTimers[kTimerCount];
     SocketWatch mSocketWatches[kSocketWatchCount];
+    bool mRun = true;
 };
 
 }

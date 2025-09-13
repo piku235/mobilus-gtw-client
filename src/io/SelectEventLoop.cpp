@@ -16,7 +16,7 @@ void SelectEventLoop::runFor(std::chrono::milliseconds duration)
     fd_set readFds;
     fd_set writeFds;
 
-    while (steady_clock::now() <= untilTime) {
+    while (mRun && steady_clock::now() <= untilTime) {
         auto absoluteDelay = std::chrono::duration_cast<std::chrono::milliseconds>(untilTime - steady_clock::now());
         auto* closestTimerExpiresAt = &mTimers[0].expiresAt;
         bool hasActiveTimers = false;
@@ -98,6 +98,11 @@ void SelectEventLoop::runFor(std::chrono::milliseconds duration)
 void SelectEventLoop::run()
 {
     runFor(std::chrono::milliseconds::max());
+}
+
+void SelectEventLoop::stop()
+{
+    mRun = false;
 }
 
 void SelectEventLoop::startTimer(std::chrono::milliseconds delay, TimerCallback callback, void* callbackData)
