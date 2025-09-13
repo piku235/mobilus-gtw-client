@@ -9,6 +9,12 @@ MqttMobilusGtwClient::Builder& MqttMobilusGtwClient::Builder::dsn(MqttDsn dsn)
     return *this;
 }
 
+MqttMobilusGtwClient::Builder& MqttMobilusGtwClient::Builder::login(MobilusCredentials mobilusCredentials)
+{
+    mMobilusCredentials.emplace(std::move(mobilusCredentials));
+    return *this;
+}
+
 MqttMobilusGtwClient::Builder& MqttMobilusGtwClient::Builder::attachTo(io::EventLoop* loop)
 {
     mLoop = loop;
@@ -53,8 +59,12 @@ MqttMobilusGtwClient::Builder& MqttMobilusGtwClient::Builder::onRawMessage(RawMe
 
 std::unique_ptr<MqttMobilusGtwClient> MqttMobilusGtwClient::Builder::build()
 {
-    auto client = std::make_unique<MqttMobilusGtwClientImpl>(*mDsn, mConnectTimeout, mResponseTimeout, *mLoop, *mLogger);
-    
+    if (!mDsn || !mMobilusCredentials) {
+        return nullptr;
+    }
+
+    auto client = std::make_unique<MqttMobilusGtwClientImpl>(*mDsn, *mMobilusCredentials, mConnectTimeout, mResponseTimeout, *mLoop, *mLogger);
+
     if (mKeepAliveMessage) {
         client->useKeepAliveMessage(std::move(mKeepAliveMessage));
     }
@@ -68,10 +78,11 @@ std::unique_ptr<MqttMobilusGtwClient> MqttMobilusGtwClient::Builder::build()
     return client;
 }
 
-std::unique_ptr<MqttMobilusGtwClient> MqttMobilusGtwClient::fromDsn(MqttDsn dsn)
+std::unique_ptr<MqttMobilusGtwClient> MqttMobilusGtwClient::from(MqttDsn dsn, MobilusCredentials mobilusCredentials)
 {
     return builder()
         .dsn(std::move(dsn))
+        .login(mobilusCredentials)
         .build();
 }
 

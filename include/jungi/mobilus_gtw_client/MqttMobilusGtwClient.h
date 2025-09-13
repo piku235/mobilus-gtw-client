@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Error.h"
 #include "Envelope.h"
-#include "MqttDsn.h"
+#include "Error.h"
 #include "MessageBus.h"
+#include "MobilusCredentials.h"
+#include "MqttDsn.h"
 #include "SessionInformation.h"
 #include "io/EventLoop.h"
 #include "io/NullEventLoop.h"
@@ -14,9 +15,9 @@
 #include <tl/expected.hpp>
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <optional>
-#include <functional>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -31,6 +32,7 @@ public:
     class Builder final {
     public:
         Builder& dsn(MqttDsn dsn);
+        Builder& login(MobilusCredentials mobilusCredentials);
         Builder& attachTo(io::EventLoop* loop);
         Builder& useLogger(logging::Logger* logger);
         Builder& useKeepAliveMessage(std::unique_ptr<google::protobuf::MessageLite> message);
@@ -42,6 +44,7 @@ public:
 
     private:
         std::optional<MqttDsn> mDsn;
+        std::optional<MobilusCredentials> mMobilusCredentials;
         io::EventLoop* mLoop = &io::NullEventLoop::instance();
         logging::Logger* mLogger = &logging::NullLogger::instance();
         std::unique_ptr<google::protobuf::MessageLite> mKeepAliveMessage;
@@ -51,7 +54,7 @@ public:
         std::optional<RawMessageCallback> mRawMessageCallback;
     };
 
-    static std::unique_ptr<MqttMobilusGtwClient> fromDsn(MqttDsn dsn);
+    static std::unique_ptr<MqttMobilusGtwClient> from(MqttDsn dsn, MobilusCredentials mobilusCredentials);
     static Builder builder();
 
     virtual ~MqttMobilusGtwClient() = default;

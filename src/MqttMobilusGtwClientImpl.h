@@ -5,22 +5,23 @@
 #include "SelectCondition.h"
 #include "crypto/Encryptor.h"
 #include "jungi/mobilus_gtw_client/Envelope.h"
+#include "jungi/mobilus_gtw_client/MobilusCredentials.h"
 #include "jungi/mobilus_gtw_client/MqttDsn.h"
 #include "jungi/mobilus_gtw_client/MqttMobilusGtwClient.h"
-#include "jungi/mobilus_gtw_client/io/SocketEventHandler.h"
 #include "jungi/mobilus_gtw_client/io/EventLoop.h"
 #include "jungi/mobilus_gtw_client/io/NullEventLoop.h"
+#include "jungi/mobilus_gtw_client/io/SocketEventHandler.h"
 #include "jungi/mobilus_gtw_client/logging/Logger.h"
 #include "jungi/mobilus_gtw_client/logging/NullLogger.h"
 
 #include <mosquitto.h>
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <queue>
 #include <string>
 #include <vector>
-#include <chrono>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -31,7 +32,7 @@ namespace proto {
 class MqttMobilusGtwClientImpl final : public MqttMobilusGtwClient,
                                        public io::SocketEventHandler {
 public:
-    MqttMobilusGtwClientImpl(MqttDsn dsn, std::chrono::milliseconds conenctTimeout, std::chrono::milliseconds responseTimeout, io::EventLoop& loop = io::NullEventLoop::instance(), logging::Logger& logger = logging::NullLogger::instance());
+    MqttMobilusGtwClientImpl(MqttDsn dsn, MobilusCredentials mobilusCreds, std::chrono::milliseconds conenctTimeout, std::chrono::milliseconds responseTimeout, io::EventLoop& loop = io::NullEventLoop::instance(), logging::Logger& logger = logging::NullLogger::instance());
     ~MqttMobilusGtwClientImpl();
 
     void useKeepAliveMessage(std::unique_ptr<google::protobuf::MessageLite> message);
@@ -79,6 +80,7 @@ private:
     mosquitto* mMosq = nullptr;
     ClientId mClientId;
     MqttDsn mDsn;
+    MobilusCredentials mMobilusCreds;
     std::chrono::milliseconds mConnectTimeout;
     std::chrono::milliseconds mResponseTimeout;
     io::EventLoop& mLoop;

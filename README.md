@@ -51,14 +51,11 @@ See the [mobcli](tools/mobcli) for more details about the command-line client.
 using namespace jungi::mobilus_gtw_client;
 
 int main() {
-    auto client = MqttMobilusGtwClient::with({
-        "192.168.1.1", // host
-        8883,          // port
-        "admin",       // username
-        "admin",       // password
-        "/certs/mobilelabs_mobilus_ca.crt" // CA file
-    });
-    
+    auto client = MqttMobilusGtwClient::builder()
+        .dsn(MqttDsn::from("mqtts://192.168.1.1:8883?ca_file=ca.cert").value())
+        .login({ "admin", "admin" })
+        .build();
+
      // connect to MQTT broker and authenticate with Cosmo GTW
     if (auto e = client.connect(); !e) {
         // print, log or handle error

@@ -22,9 +22,10 @@ using std::chrono::steady_clock;
 
 namespace jungi::mobilus_gtw_client {
 
-MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(MqttDsn dsn, std::chrono::milliseconds conenctTimeout, std::chrono::milliseconds responseTimeout, io::EventLoop& loop, logging::Logger& logger)
+MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(MqttDsn dsn, MobilusCredentials mobilusCreds, std::chrono::milliseconds conenctTimeout, std::chrono::milliseconds responseTimeout, io::EventLoop& loop, logging::Logger& logger)
     : mClientId(ClientId::unique())
     , mDsn(std::move(dsn))
+    , mMobilusCreds(std::move(mobilusCreds))
     , mConnectTimeout(conenctTimeout)
     , mResponseTimeout(responseTimeout)
     , mLoop(loop)
@@ -286,9 +287,9 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
 {
     proto::LoginRequest request;
     proto::LoginResponse response;
-    auto hashedPassword = crypto::sha256(mDsn.params().at("mobilus_password"));
+    auto hashedPassword = crypto::sha256(mMobilusCreds.password);
 
-    request.set_login(mDsn.params().at("mobilus_username"));
+    request.set_login(mMobilusCreds.username);
     request.set_password(hashedPassword.data(), hashedPassword.size());
 
     mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
@@ -504,7 +505,7 @@ int MqttMobilusGtwClientImpl::connectMqtt()
     int rc;
 
     if (mDsn.isSecure()) {
-        rc = mosquitto_tls_set(mMosq, mDsn.params().at("ca_file").c_str(), nullptr, nullptr, nullptr, nullptr);
+        rc = mosquitto_tls_set(mMosq, mDsn.caFile().has_value() ? mDsn.caFile()->c_str() : nullptr, nullptr, nullptr, nullptr, nullptr);
         if (MOSQ_ERR_SUCCESS != rc) {
             return rc;
         }

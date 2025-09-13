@@ -1,6 +1,7 @@
 #include "jungi/mobilus_gtw_client/MqttDsn.h"
 
 #include <regex>
+#include <unordered_map>
 
 namespace jungi::mobilus_gtw_client {
 
@@ -16,13 +17,22 @@ std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
     auto queryString = umatches[6].str();
 
     std::regex query(R"((\w+)=([^&]+))");
-    QueryParams params;
+    std::unordered_map<std::string, std::string> queryParams;
     std::smatch qmatches;
 
     std::string::const_iterator start(queryString.cbegin());
     while (std::regex_search(start, queryString.cend(), qmatches, query)) {
-        params[qmatches[1]] = qmatches[2];
+        queryParams[qmatches[1]] = qmatches[2];
         start = qmatches.suffix().first;
+    }
+
+    std::optional<std::string> caFile;
+
+    {
+        auto r = queryParams.find("ca_file");
+        if (r != queryParams.end()) {
+            caFile = r->second;
+        }
     }
 
     return MqttDsn(
@@ -31,17 +41,16 @@ std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
         umatches[2].str().empty() ? std::nullopt : std::optional(umatches[2].str()),
         umatches[3].str().empty() ? std::nullopt : std::optional(umatches[3].str()),
         "mqtts" == umatches[1].str(),
-        std::move(params)
-    );
+        caFile);
 }
 
-MqttDsn::MqttDsn(std::string host, std::optional<uint16_t> port, std::optional<std::string> username, std::optional<std::string> password, bool secure, QueryParams params)
+MqttDsn::MqttDsn(std::string host, std::optional<uint16_t> port, std::optional<std::string> username, std::optional<std::string> password, bool secure, std::optional<std::string> caFile)
     : mHost(std::move(host))
     , mPort(std::move(port))
     , mUsername(std::move(username))
     , mPassword(std::move(password))
     , mSecure(secure)
-    , mParams(std::move(params))
+    , mCaFile(std::move(caFile))
 {
 }
 
