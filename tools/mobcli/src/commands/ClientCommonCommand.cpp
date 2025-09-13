@@ -48,7 +48,7 @@ std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(
     MqttDsn::QueryParams params;
     params["mobilus_username"] = r["username"].as<std::string>;
     params["mobilus_password"] = r["password"].as<std::string>;
-    params["ca_file"] = ::kMobilusCaFile;
+    params["cacert"] = ::kMobilusCaFile;
 
     builder
         .dsn({ r["host"].as<std::string>(), ::kMobilusMqttPort, {}, {}, true, std::move(params) })

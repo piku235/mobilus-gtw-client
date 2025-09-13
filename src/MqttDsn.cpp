@@ -26,12 +26,12 @@ std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
         start = qmatches.suffix().first;
     }
 
-    std::optional<std::string> caFile;
+    std::optional<std::string> cacert;
 
     {
-        auto r = queryParams.find("ca_file");
+        auto r = queryParams.find("cacert");
         if (r != queryParams.end()) {
-            caFile = r->second;
+            cacert = r->second;
         }
     }
 
@@ -41,16 +41,16 @@ std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
         umatches[2].str().empty() ? std::nullopt : std::optional(umatches[2].str()),
         umatches[3].str().empty() ? std::nullopt : std::optional(umatches[3].str()),
         "mqtts" == umatches[1].str(),
-        caFile);
+        cacert);
 }
 
-MqttDsn::MqttDsn(std::string host, std::optional<uint16_t> port, std::optional<std::string> username, std::optional<std::string> password, bool secure, std::optional<std::string> caFile)
+MqttDsn::MqttDsn(std::string host, std::optional<uint16_t> port, std::optional<std::string> username, std::optional<std::string> password, bool secure, std::optional<std::string> cacert)
     : mHost(std::move(host))
     , mPort(std::move(port))
     , mUsername(std::move(username))
     , mPassword(std::move(password))
     , mSecure(secure)
-    , mCaFile(std::move(caFile))
+    , mCacert(std::move(cacert))
 {
 }
 

@@ -52,7 +52,7 @@ using namespace jungi::mobilus_gtw_client;
 
 int main() {
     auto client = MqttMobilusGtwClient::builder()
-        .dsn(MqttDsn::from("mqtts://192.168.1.1:8883?ca_file=ca.cert").value())
+        .dsn(MqttDsn::from("mqtts://192.168.1.1:8883?cacert=ca.cert").value())
         .login({ "admin", "admin" })
         .build();
 

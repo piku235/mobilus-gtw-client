@@ -6,7 +6,7 @@ using jungi::mobilus_gtw_client::MqttDsn;
 
 TEST(MqttDsnTest, ParsesDsnString)
 {
-    auto mqttDsn = MqttDsn::from("mqtt://user:pass@127.0.0.1:1883?foo=bar&ca_file=ca.cert");
+    auto mqttDsn = MqttDsn::from("mqtt://user:pass@127.0.0.1:1883?foo=bar&cacert=ca.cert");
 
     ASSERT_TRUE(mqttDsn.has_value());
     ASSERT_FALSE(mqttDsn->isSecure());
@@ -17,8 +17,8 @@ TEST(MqttDsnTest, ParsesDsnString)
     ASSERT_EQ("127.0.0.1", mqttDsn->host());
     ASSERT_TRUE(mqttDsn->port().has_value());
     ASSERT_EQ(1883, *mqttDsn->port());
-    ASSERT_TRUE(mqttDsn->caFile().has_value());
-    ASSERT_EQ("ca.cert", *mqttDsn->caFile());
+    ASSERT_TRUE(mqttDsn->cacert().has_value());
+    ASSERT_EQ("ca.cert", *mqttDsn->cacert());
 
     auto mqttsDsn = MqttDsn::from("mqtts://localhost");
 
@@ -28,7 +28,7 @@ TEST(MqttDsnTest, ParsesDsnString)
     ASSERT_FALSE(mqttsDsn->password().has_value());
     ASSERT_EQ("localhost", mqttsDsn->host());
     ASSERT_FALSE(mqttsDsn->port().has_value());
-    ASSERT_FALSE(mqttsDsn->caFile().has_value());
+    ASSERT_FALSE(mqttsDsn->cacert().has_value());
 }
 
 TEST(MqttDsnTest, ParseDsnStringFails)

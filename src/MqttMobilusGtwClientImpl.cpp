@@ -505,7 +505,7 @@ int MqttMobilusGtwClientImpl::connectMqtt()
     int rc;
 
     if (mDsn.isSecure()) {
-        rc = mosquitto_tls_set(mMosq, mDsn.caFile().has_value() ? mDsn.caFile()->c_str() : nullptr, nullptr, nullptr, nullptr, nullptr);
+        rc = mosquitto_tls_set(mMosq, mDsn.cacert().has_value() ? mDsn.cacert()->c_str() : nullptr, nullptr, nullptr, nullptr, nullptr);
         if (MOSQ_ERR_SUCCESS != rc) {
             return rc;
         }
