@@ -45,13 +45,9 @@ std::unique_ptr<MqttMobilusGtwClient> ClientCommonCommand::mqttMobilusGtwClient(
     static StderrLogger logger;
     auto builder = MqttMobilusGtwClient::builder();
 
-    MqttDsn::QueryParams params;
-    params["mobilus_username"] = r["username"].as<std::string>;
-    params["mobilus_password"] = r["password"].as<std::string>;
-    params["cacert"] = ::kMobilusCaFile;
-
     builder
-        .dsn({ r["host"].as<std::string>(), ::kMobilusMqttPort, {}, {}, true, std::move(params) })
+        .dsn({ r["host"].as<std::string>(), ::kMobilusMqttPort, {}, {}, true, ::kMobilusCaFile })
+        .login({ r["username"].as<std::string>(), r["password"].as<std::string>() })
         .useKeepAliveMessage(std::make_unique<proto::DeviceSettingsRequest>())
         .useLogger(&logger);
 
