@@ -30,7 +30,7 @@ add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(tests)
 endif()
 

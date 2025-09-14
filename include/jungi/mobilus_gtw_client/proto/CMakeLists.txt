@@ -1,4 +1,4 @@
-set(PROTOC "${CMAKE_BINARY_DIR}/bin/protoc")
+set(PROTOC "${CMAKE_BINARY_DIR}/host/bin/protoc")
 file(GLOB PROTO_FILES *.proto)
 
 foreach(proto ${PROTO_FILES})
