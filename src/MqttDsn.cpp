@@ -35,23 +35,14 @@ std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
         }
     }
 
-    return MqttDsn(
-        umatches[4].str(),
-        umatches[5].str().empty() ? std::nullopt : std::optional(static_cast<uint16_t>(std::stoi(umatches[5].str()))),
+    return MqttDsn {
+        "mqtts" == umatches[1].str(),
         umatches[2].str().empty() ? std::nullopt : std::optional(umatches[2].str()),
         umatches[3].str().empty() ? std::nullopt : std::optional(umatches[3].str()),
-        "mqtts" == umatches[1].str(),
-        cacert);
-}
-
-MqttDsn::MqttDsn(std::string host, std::optional<uint16_t> port, std::optional<std::string> username, std::optional<std::string> password, bool secure, std::optional<std::string> cacert)
-    : mHost(std::move(host))
-    , mPort(std::move(port))
-    , mUsername(std::move(username))
-    , mPassword(std::move(password))
-    , mSecure(secure)
-    , mCacert(std::move(cacert))
-{
+        umatches[4].str(),
+        umatches[5].str().empty() ? std::nullopt : std::optional(static_cast<uint16_t>(std::stoi(umatches[5].str()))),
+        cacert
+    };
 }
 
 }

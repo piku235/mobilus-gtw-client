@@ -504,8 +504,8 @@ int MqttMobilusGtwClientImpl::connectMqtt()
 
     int rc;
 
-    if (mDsn.isSecure()) {
-        rc = mosquitto_tls_set(mMosq, mDsn.cacert().has_value() ? mDsn.cacert()->c_str() : nullptr, nullptr, nullptr, nullptr, nullptr);
+    if (mDsn.secure) {
+        rc = mosquitto_tls_set(mMosq, mDsn.cacert.has_value() ? mDsn.cacert->c_str() : nullptr, nullptr, nullptr, nullptr, nullptr);
         if (MOSQ_ERR_SUCCESS != rc) {
             return rc;
         }
@@ -518,8 +518,8 @@ int MqttMobilusGtwClientImpl::connectMqtt()
 
     mosquitto_connect_callback_set(mMosq, onConnectCallback);
 
-    rc = mosquitto_connect(mMosq, mDsn.host().c_str(), static_cast<int>(*mDsn.port()), kKeepAliveIntervalSecs);
-    // mosquitto_username_pw_set(mMosq, mDsn.username().has_value() ? mDsn.username().value().c_str() : nullptr, mDsn.password().has_value() ? mDsn.password().value().c_str() : nullptr);
+    rc = mosquitto_connect(mMosq, mDsn.host.c_str(), static_cast<int>(*mDsn.port), kKeepAliveIntervalSecs);
+    mosquitto_username_pw_set(mMosq, mDsn.username.has_value() ? mDsn.username.value().c_str() : nullptr, mDsn.password.has_value() ? mDsn.password.value().c_str() : nullptr);
 
     return rc;
 }
