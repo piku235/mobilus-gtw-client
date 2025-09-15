@@ -38,8 +38,8 @@ cmake --build .
 
 ## mobcli
 
-This library includes the **mobcli** tool — a command-line client for interacting with the Mobilus Cosmo GTW device.
-See the [mobcli](tools/mobcli) for more details about the command-line client.
+A command-line client for interacting with the Mobilus Cosmo GTW and it's also a good usage example of this library.
+See the [mobcli repository](https://github.com/piku235/mobcli) for more details.
 
 ## Basic usage
 

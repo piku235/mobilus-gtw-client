@@ -9,7 +9,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-option(BUILD_MOBCLI "Build mobcli tool" OFF)
 
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
@@ -32,10 +31,6 @@ add_subdirectory(third_party/protobuf)
 
 if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(tests)
-endif()
-
-if(BUILD_MOBCLI)
-  add_subdirectory(tools/mobcli)
 endif()
 
 add_library(common_compiler_warnings INTERFACE)

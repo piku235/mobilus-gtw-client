@@ -1,2 +1,0 @@
-#pragma once
-constexpr char kMobilusCaFile[] = "@MOBILUS_CA_FILE@";
