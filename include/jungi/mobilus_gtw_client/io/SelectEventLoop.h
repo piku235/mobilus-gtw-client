@@ -9,6 +9,14 @@ namespace jungi::mobilus_gtw_client::io {
 
 class SelectEventLoop final : public EventLoop {
 public:
+    SelectEventLoop() = default;
+
+    SelectEventLoop(SelectEventLoop&& other) = default;
+    SelectEventLoop& operator=(SelectEventLoop&& other) = default;
+
+    SelectEventLoop(const SelectEventLoop& other) = delete;
+    SelectEventLoop& operator=(const SelectEventLoop& other) = delete;
+
     void run();
     void runFor(std::chrono::milliseconds duration);
     void stop();
