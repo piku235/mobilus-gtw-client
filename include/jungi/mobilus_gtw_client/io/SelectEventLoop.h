@@ -21,8 +21,8 @@ public:
     void runFor(std::chrono::milliseconds duration);
     void stop();
 
-    void startTimer(std::chrono::milliseconds delay, TimerCallback callback, void* callbackData) override;
-    void stopTimer(TimerCallback callback, void* callbackData) override;
+    TimerId startTimer(std::chrono::milliseconds delay, TimerCallback callback, void* callbackData) override;
+    void stopTimer(TimerId id) override;
     void watchSocket(int socketFd, SocketEventHandler* handler) override;
     void unwatchSocket(int socketFd) override;
 

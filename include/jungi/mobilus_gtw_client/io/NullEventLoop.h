@@ -13,10 +13,10 @@ public:
         return loop;
     }
 
-    void startTimer(std::chrono::milliseconds, TimerCallback, void*) override {}
-    void stopTimer(TimerCallback, void*) override {}
-    void watchSocket(int, SocketEventHandler*) override {}
-    void unwatchSocket(int) override {}
+    TimerId startTimer(std::chrono::milliseconds, TimerCallback, void*) override { return kInvalidTimerId; }
+    void stopTimer(TimerId) override { }
+    void watchSocket(int, SocketEventHandler*) override { }
+    void unwatchSocket(int) override { }
 
 private:
     NullEventLoop() = default;

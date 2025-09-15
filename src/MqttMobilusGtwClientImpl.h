@@ -97,6 +97,8 @@ private:
     bool mConnected = false;
     bool mReconnecting = false;
     ExponentialBackoff mReconnectDelay = { std::chrono::milliseconds(100), std::chrono::minutes(2) };
+    io::EventLoop::TimerId mReconnectTimerId = io::EventLoop::kInvalidTimerId;
+    io::EventLoop::TimerId mMiscTimerId = io::EventLoop::kInvalidTimerId;
 
     static void onConnectCallback(mosquitto* mosq, void* obj, int reasonCode);
     static void onMessageCallback(mosquitto* mosq, void* obj, const mosquitto_message* mosqMessage);

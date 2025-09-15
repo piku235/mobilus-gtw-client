@@ -36,8 +36,12 @@ void SelectEventLoop::runFor(std::chrono::milliseconds duration)
                 continue;
             }
 
-            timer.callback(timer.callbackData);
+            auto callback = timer.callback;
+            auto callbackData = timer.callbackData;
+
+            // release slot and then call callback
             timer = {};
+            callback(callbackData);
         }
 
         FD_ZERO(&readFds);
@@ -105,27 +109,28 @@ void SelectEventLoop::stop()
     mRun = false;
 }
 
-void SelectEventLoop::startTimer(std::chrono::milliseconds delay, TimerCallback callback, void* callbackData)
+EventLoop::TimerId SelectEventLoop::startTimer(std::chrono::milliseconds delay, TimerCallback callback, void* callbackData)
 {
-    stopTimer(callback, callbackData);
-
-    for (auto& timer : mTimers) {
-        if (nullptr == timer.callback) {
-            timer.expiresAt = steady_clock::now() + delay;
-            timer.callback = callback;
-            timer.callbackData = callbackData;
-            return;
+    for (TimerId i = 0; i < kTimerCount; i++) {
+        auto& timer = mTimers[i];
+        if (nullptr != timer.callback) {
+            continue;
         }
+
+        timer.expiresAt = steady_clock::now() + delay;
+        timer.callback = callback;
+        timer.callbackData = callbackData;
+
+        return i;
     }
+
+    return kInvalidTimerId;
 }
 
-void SelectEventLoop::stopTimer(TimerCallback callback, void* callbackData)
+void SelectEventLoop::stopTimer(TimerId id)
 {
-    for (auto& timer : mTimers) {
-        if (callback == timer.callback && callbackData == timer.callbackData) {
-            timer.expiresAt = {};
-            return;
-        }
+    if (id > kInvalidTimerId && id < kTimerCount) {
+        mTimers[id] = {};
     }
 }
 
