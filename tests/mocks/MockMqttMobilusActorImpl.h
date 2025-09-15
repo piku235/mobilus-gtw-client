@@ -83,7 +83,7 @@ public:
         Commands commandId() const { return Commands::MockResponse; }
     };
 
-    MockMqttMobilusActorImpl(std::string host, size_t port);
+    MockMqttMobilusActorImpl(std::string host, uint16_t port);
     ~MockMqttMobilusActorImpl();
 
     bool connect();
@@ -100,7 +100,7 @@ private:
 
     mosquitto* mMosq = nullptr;
     std::string mHost;
-    size_t mPort;
+    uint16_t mPort;
     crypto::bytes mPublicKey;
     crypto::bytes mPrivateKey;
     std::unique_ptr<crypto::Encryptor> mPublicEncryptor;

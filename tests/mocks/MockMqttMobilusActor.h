@@ -4,37 +4,40 @@
 
 #include <google/protobuf/message_lite.h>
 
-#include <condition_variable>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
+#include <cstdint>
 
 namespace jungi::mobilus_gtw_client::tests::mocks {
 
 class MockMqttMobilusActor final {
 public:
-    MockMqttMobilusActor(std::string host, size_t port);
+    MockMqttMobilusActor(std::string host, uint16_t port);
     ~MockMqttMobilusActor();
 
     void mockResponseFor(uint8_t requestType, std::unique_ptr<const google::protobuf::MessageLite> response);
     void reply(std::unique_ptr<const google::protobuf::MessageLite> message);
     void share(std::unique_ptr<const google::protobuf::MessageLite> message);
+    void start();
     void stop();
 
 private:
     using Impl = MockMqttMobilusActorImpl;
 
     std::thread mSelf;
+    std::string mHost;
+    uint16_t mPort;
     std::mutex mMutex;
-    std::condition_variable mCv;
+    std::promise<void> mReady;
     std::queue<std::unique_ptr<Impl::Command>> mQueue;
-    bool mReady = false;
     bool mStop = false;
     int mWakeFd[2] = { -1, -1 };
 
-    void run(Impl& impl);
+    void run();
     void wakeUp();
     void consumeWakeUp();
     void post(std::unique_ptr<Impl::Command> cmd);

@@ -37,7 +37,7 @@ static std::string bin2hex(const TContainer& buf)
 
 namespace jungi::mobilus_gtw_client::tests::mocks {
 
-MockMqttMobilusActorImpl::MockMqttMobilusActorImpl(std::string host, size_t port)
+MockMqttMobilusActorImpl::MockMqttMobilusActorImpl(std::string host, uint16_t port)
     : mHost(std::move(host))
     , mPort(port)
 {

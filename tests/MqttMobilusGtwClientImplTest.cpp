@@ -114,6 +114,8 @@ TEST(MqttMobilusGtwClientImplTest, Connects)
     MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
+    mobilusActor.start();
+
     auto r = client.connect();
     auto sessionInfo = client.sessionInfo();
 
@@ -165,6 +167,8 @@ TEST(MqttMobilusGtwClientImplTest, LoginFailed)
     MqttMobilusGtwClientImpl client(kDsn, { "admin", "123456" }, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
+    mobilusActor.start();
+
     auto r = client.connect();
 
     ASSERT_FALSE(r.has_value());
@@ -176,6 +180,8 @@ TEST(MqttMobilusGtwClientImplTest, HostCannotBeResolved)
 {
     MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://255.255.255.255:1883").value(), kMobCreds, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
+
+    mobilusActor.start();
 
     auto r = client.connect();
 
@@ -189,6 +195,8 @@ TEST(MqttMobilusGtwClientImplTest, InvalidPort)
     MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://localhost:2883").value(), kMobCreds, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
+    mobilusActor.start();
+
     auto r = client.connect();
 
     ASSERT_FALSE(r.has_value());
@@ -201,6 +209,8 @@ TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
     MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
+    mobilusActor.start();
+
     ASSERT_TRUE(client.connect());
     ASSERT_TRUE(client.disconnect());
     ASSERT_TRUE(client.connect());
@@ -210,6 +220,8 @@ TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
 {
     MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
+
+    mobilusActor.start();
 
     proto::DevicesListResponse expectedResponse = devicesListResponseStub();
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(expectedResponse));
@@ -229,6 +241,7 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::CurrentStateResponse>());
+    mobilusActor.start();
 
     ASSERT_TRUE(client.connect());
 
@@ -244,6 +257,8 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)
 {
     MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
+
+    mobilusActor.start();
 
     ASSERT_TRUE(client.connect());
 
@@ -263,6 +278,8 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
 
     proto::CallEvents expectedCallEvents = callEventsStub();
     proto::CallEvents actualCallEvents;
+
+    mobilusActor.start();
 
     client.messageBus().subscribe<proto::CallEvents>(MessageType::CallEvents, [&](const auto& callEvents) {
         actualCallEvents.CopyFrom(callEvents);
@@ -287,6 +304,8 @@ TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
 
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
+    mobilusActor.start();
+
     ASSERT_TRUE(client.connect());
 
     mobilusActor.share(std::make_unique<proto::CallEvents>(callEventsStub()));
@@ -305,6 +324,8 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
     proto::CallEvents expectedCallEvents = callEventsStub();
     proto::DevicesListResponse expectedDeviceList = devicesListResponseStub();
     proto::CallEvents actualCallEvents;
+
+    mobilusActor.start();
 
     client.messageBus().subscribeAll([&](const google::protobuf::MessageLite& message) {
         std::unique_ptr<google::protobuf::MessageLite> subscribedMessage(message.New());
@@ -336,6 +357,7 @@ TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(devicesListResponseStub()));
+    mobilusActor.start();
 
     bool subscribed = false;
     client.messageBus().subscribe<proto::DevicesListResponse>(MessageType::DevicesListResponse, [&](const auto&) {
@@ -361,6 +383,7 @@ TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(devicesListResponseStub()));
+    mobilusActor.start();
 
     bool received = false;
     client.messageBus().subscribe<proto::DevicesListResponse>(MessageType::DevicesListResponse, [&](const auto&) {
@@ -387,6 +410,8 @@ TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
 
     MockMqttMobilusActor mobilusActor("localhost", 1883);
 
+    mobilusActor.start();
+
     ASSERT_TRUE(client.connect());
 
     mobilusActor.reply(std::make_unique<proto::CallEvents>(sessionExpiresCallEventsStub(15)));
@@ -400,6 +425,8 @@ TEST(MqttMobilusGtwClientImplTest, ReconnectsOnExpiredSession)
     io::SelectEventLoop loop;
     MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
     MockMqttMobilusActor mobilusActor("localhost", 1883);
+
+    mobilusActor.start();
 
     ASSERT_TRUE(client.connect());
     SessionInformation sessionInfo = *client.sessionInfo();

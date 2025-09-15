@@ -1,7 +1,7 @@
 #include "MockMqttMobilusActor.h"
 
-#include <cstdint>
 #include <algorithm>
+#include <cstdint>
 #include <sys/select.h>
 #include <unistd.h>
 
@@ -11,20 +11,33 @@ static constexpr int kInvalidFd = -1;
 
 namespace jungi::mobilus_gtw_client::tests::mocks {
 
-MockMqttMobilusActor::MockMqttMobilusActor(std::string host, size_t port)
+MockMqttMobilusActor::MockMqttMobilusActor(std::string host, uint16_t port)
+    : mHost(std::move(host))
+    , mPort(port)
 {
-    mSelf = std::thread([host = std::move(host), port, this]() {
-        Impl impl(std::move(host), port);
-        run(impl);
-    });
-
-    std::unique_lock<std::mutex> lock(mMutex);
-    mCv.wait(lock, [&]() -> bool { return mReady; });
 }
 
 MockMqttMobilusActor::~MockMqttMobilusActor()
 {
     stop();
+}
+
+void MockMqttMobilusActor::start()
+{
+    auto readyFut = mReady.get_future();
+
+    mSelf = std::thread([this]() { run(); });
+    readyFut.wait();
+}
+
+void MockMqttMobilusActor::stop()
+{
+    mStop = true;
+    wakeUp();
+
+    if (mSelf.joinable()) {
+        mSelf.join();
+    }
 }
 
 void MockMqttMobilusActor::mockResponseFor(uint8_t requestType, std::unique_ptr<const google::protobuf::MessageLite> response)
@@ -42,20 +55,15 @@ void MockMqttMobilusActor::share(std::unique_ptr<const google::protobuf::Message
     post(std::make_unique<Impl::ShareMessageCommand>(std::move(message)));
 }
 
-void MockMqttMobilusActor::run(Impl& impl)
+void MockMqttMobilusActor::run()
 {
-    {
-        std::unique_lock<std::mutex> lock(mMutex);
+    Impl impl(std::move(mHost), mPort);
 
-        auto r = impl.connect();
+    auto r = impl.connect();
+    mReady.set_value();
 
-        mReady = true;
-        lock.unlock();
-        mCv.notify_one();
-
-        if (!r) {
-            return;
-        }
+    if (!r) {
+        return;
     }
 
     if (pipe(mWakeFd) != 0) {
@@ -110,16 +118,6 @@ void MockMqttMobilusActor::run(Impl& impl)
 
     mWakeFd[0] = kInvalidFd;
     mWakeFd[1] = kInvalidFd;
-}
-
-void MockMqttMobilusActor::stop()
-{
-    mStop = true;
-    wakeUp();
-
-    if (mSelf.joinable()) {
-        mSelf.join();
-    }
 }
 
 void MockMqttMobilusActor::post(std::unique_ptr<Impl::Command> cmd)
