@@ -27,11 +27,19 @@ std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
     }
 
     std::optional<std::string> cacert;
+    std::optional<bool> verify;
 
     {
         auto r = queryParams.find("cacert");
         if (r != queryParams.end()) {
             cacert = r->second;
+        }
+    }
+
+    {
+        auto r = queryParams.find("verify");
+        if (r != queryParams.end()) {
+            verify = "true" == r->second ? std::optional(true) : ("false" == r->second ? std::optional(false) : std::nullopt);
         }
     }
 
@@ -41,7 +49,8 @@ std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
         umatches[3].str().empty() ? std::nullopt : std::optional(umatches[3].str()),
         umatches[4].str(),
         umatches[5].str().empty() ? std::nullopt : std::optional(static_cast<uint16_t>(std::stoi(umatches[5].str()))),
-        cacert
+        std::move(cacert),
+        std::move(verify)
     };
 }
 

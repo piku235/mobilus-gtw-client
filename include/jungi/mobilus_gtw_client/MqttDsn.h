@@ -13,6 +13,7 @@ struct MqttDsn final {
     std::string host;
     std::optional<uint16_t> port;
     std::optional<std::string> cacert;
+    std::optional<bool> verify;
 
     static std::optional<MqttDsn> from(const std::string& dsn);
 };

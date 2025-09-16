@@ -510,7 +510,7 @@ int MqttMobilusGtwClientImpl::connectMqtt()
             return rc;
         }
 
-        rc = mosquitto_tls_insecure_set(mMosq, true);
+        rc = mosquitto_tls_insecure_set(mMosq, mDsn.verify.value_or(true) ? false : true);
         if (MOSQ_ERR_SUCCESS != rc) {
             return rc;
         }
