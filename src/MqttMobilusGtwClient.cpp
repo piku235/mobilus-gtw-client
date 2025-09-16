@@ -82,7 +82,7 @@ std::unique_ptr<MqttMobilusGtwClient> MqttMobilusGtwClient::from(MqttDsn dsn, Mo
 {
     return builder()
         .dsn(std::move(dsn))
-        .login(mobilusCredentials)
+        .login(std::move(mobilusCredentials))
         .build();
 }
 
