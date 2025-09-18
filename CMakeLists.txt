@@ -8,13 +8,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-option(MOBGTW_BUILD_TESTS "Build mobgtw tests" ${PROJECT_IS_TOP_LEVEL})
+include(CMakeDependentOption)
+include(CTest)
+include(FetchContent)
+
+cmake_dependent_option(MOBGTW_BUILD_TESTS "Build mobgtw tests" ON "PROJECT_IS_TOP_LEVEL AND BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING" OFF)
 
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
-
-include(FetchContent)
 
 FetchContent_Declare(
   tl_expected
@@ -28,8 +30,7 @@ add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
 
-if(BUILD_TESTING AND MOBGTW_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING)
-  include(CTest)
+if(MOBGTW_BUILD_TESTS)
   add_subdirectory(tests)
 endif()
 
