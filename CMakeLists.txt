@@ -15,7 +15,6 @@ find_package(OpenSSL REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 
 include(FetchContent)
-include(CTest)
 
 FetchContent_Declare(
   tl_expected
@@ -30,6 +29,7 @@ add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
 
 if(BUILD_TESTING AND MOBGTW_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING)
+  include(CTest)
   add_subdirectory(tests)
 endif()
 
