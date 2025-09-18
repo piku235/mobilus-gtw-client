@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+option(BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 find_package(PkgConfig REQUIRED)
