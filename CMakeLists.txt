@@ -8,8 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-option(BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
-option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
+option(MOBGTW_BUILD_TESTS "Build mobgtw tests" ${PROJECT_IS_TOP_LEVEL})
 
 find_package(PkgConfig REQUIRED)
 find_package(OpenSSL REQUIRED)
@@ -30,7 +29,7 @@ add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
 
-if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+if(BUILD_TESTING AND MOBGTW_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING)
   add_subdirectory(tests)
 endif()
 
