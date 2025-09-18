@@ -18,7 +18,7 @@ include(FetchContent)
 
 FetchContent_Declare(
   tl_expected
-  URL https://github.com/TartanLlama/expected/archive/refs/tags/v1.2.0.zip
+  URL https://github.com/TartanLlama/expected/archive/refs/tags/v1.3.1.zip
 )
 
 set(EXPECTED_BUILD_TESTS OFF)
