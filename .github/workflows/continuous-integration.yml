@@ -41,6 +41,7 @@ jobs:
           mkdir -p $GITHUB_WORKSPACE/certs
           cd $GITHUB_WORKSPACE/certs
           openssl req -x509 -nodes -newkey rsa:2048 -keyout server.key -out server.crt -days 1 -subj "/CN=localhost"
+          chmod 644 server.key server.crt
 
       - name: Start mosquitto
         uses: namoshek/mosquitto-github-action@v1
