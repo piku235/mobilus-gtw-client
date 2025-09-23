@@ -510,12 +510,12 @@ int MqttMobilusGtwClientImpl::connectMqtt()
         }
     }
 
-    mosquitto_connect_callback_set(mMosq, onConnectCallback);
-
     rc = mosquitto_username_pw_set(mMosq, mDsn.username ? mDsn.username->c_str() : nullptr, mDsn.password ? mDsn.password->c_str() : nullptr);
     if (MOSQ_ERR_SUCCESS != rc) {
         return rc;
     }
+
+    mosquitto_connect_callback_set(mMosq, onConnectCallback);
 
     return mosquitto_connect(mMosq, mDsn.host.c_str(), static_cast<int>(*mDsn.port), kKeepAliveIntervalSecs);
 }
