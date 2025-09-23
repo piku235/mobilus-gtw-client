@@ -38,8 +38,8 @@ jobs:
 
       - name: Generate certs
         run: |
-          mkdir -p $GITHUB_WORKSPACE/certs
-          cd $GITHUB_WORKSPACE/certs
+          mkdir -p /etc/mosquitto/certs
+          cd /etc/mosquitto/certs
           openssl req -x509 -nodes -newkey rsa:2048 -keyout server.key -out server.crt -days 1 -subj "/CN=localhost"
           chmod 644 server.key server.crt
 
@@ -48,7 +48,7 @@ jobs:
         with:
           version: "2.0"
           ports: "1883:1883 8883:8883"
-          certificates: ${{ github.workspace }}/certs
+          certificates: /etc/mosquitto/certs
           config: ${{ github.workspace }}/.github/mosquitto/mosquitto.conf
           password-file: ${{ github.workspace}}/.github/mosquitto/passwd
 

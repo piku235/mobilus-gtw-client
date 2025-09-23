@@ -29,7 +29,7 @@ using jungi::mobilus_gtw_client::tests::mocks::MockMqttMobilusActor;
 namespace {
 
 static const auto kMqttDsn = MqttDsn::from("mqtt://127.0.0.1:1883").value();
-static const auto kMqttsDsn = MqttDsn::from("mqtts://admin:nimda@127.0.0.1:8883?cacert=/etc/mosquitto/certs/ca.crt&verify=false").value();
+static const auto kMqttsDsn = MqttDsn::from("mqtts://admin:nimda@127.0.0.1:8883?cacert=/etc/mosquitto/certs/server.crt&verify=false").value();
 static const MobilusCredentials kMobCreds = { "admin", "admin" };
 static constexpr std::chrono::milliseconds kTimeout(100);
 
