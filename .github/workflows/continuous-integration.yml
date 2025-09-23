@@ -23,20 +23,6 @@ jobs:
             c_compiler: clang
             cpp_compiler: clang++
 
-    services:
-      mosquitto:
-        image: eclipse-mosquitto:2.0
-        ports:
-          - 1883:1883
-          - 8883:8883
-        volumes:
-          - ${{ github.workspace }}/.github/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-          - ${{ github.workspace }}/.github/mosquitto/passwd:/mosquitto/config/passwd:ro
-          - ${{ github.workspace }}/.github/mosquitto/ca.crt:/mosquitto/config/ca.crt:ro
-          - ${{ github.workspace }}/.github/mosquitto/server.crt:/mosquitto/config/server.crt:ro
-          - ${{ github.workspace }}/.github/mosquitto/server.key:/mosquitto/config/server.key:ro
-        options: --name mosquitto
-
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +35,21 @@ jobs:
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libmosquitto-dev libssl-dev
+
+      - name: Generate certs
+        run: |
+          mkdir /tmp/certs
+          cd /tmp/certs
+          openssl req -x509 -nodes -newkey rsa:2048 -keyout server.key -out server.crt -days 1 -subj "/CN=localhost"
+
+      - name: Start mosquitto
+        uses: namoshek/mosquitto-github-action@v1
+        with:
+          version: "2.0"
+          ports: "1883:1883 8883:8883"
+          certificates: /tmp/certs
+          config: ${{ github.workspace }}/.github/mosquitto/mosquitto.conf
+          password-file: ${{ github.workspace}}/.github/mosquitto/passwd
 
       - name: Configure CMake
         run: >
