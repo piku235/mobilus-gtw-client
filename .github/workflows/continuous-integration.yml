@@ -38,10 +38,9 @@ jobs:
 
       - name: Generate certs
         run: |
-          mkdir -p /etc/mosquitto/certs
-          cd /etc/mosquitto/certs
-          openssl req -x509 -nodes -newkey rsa:2048 -keyout server.key -out server.crt -days 1 -subj "/CN=localhost"
-          chmod 644 server.key server.crt
+          sudo mkdir -p /etc/mosquitto/certs
+          sudo openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/mosquitto/certs/server.key -out /etc/mosquitto/certs/server.crt -days 1 -subj "/CN=localhost"
+          sudo chmod 644 /etc/mosquitto/certs/server.key /etc/mosquitto/certs/server.crt
 
       - name: Start mosquitto
         uses: namoshek/mosquitto-github-action@v1
