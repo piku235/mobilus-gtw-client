@@ -14,7 +14,8 @@ enum class ErrorCode : uint8_t {
     Transport = 7,
     NoConnection = 8,
     ConnectionTimeout = 9,
-    ResponseTimeout = 10,
+    ConnectionRefused = 10,
+    ResponseTimeout = 11,
     Unknown = 255,
 };
 

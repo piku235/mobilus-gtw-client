@@ -67,8 +67,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
         return {};
     }
 
-    rc = connectMqtt();
-    if (MOSQ_ERR_SUCCESS != rc) {
+    if (MOSQ_ERR_SUCCESS != (rc = connectMqtt())) {
         return logAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
     }
 
@@ -84,8 +83,8 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
 
     if (!cond.condition()) {
         return logAndReturn(Error::ConnectionTimeout("MQTT connection timeout: CONNACK missing"));
-    } else if (MOSQ_ERR_SUCCESS != connCallbackData.reasonCode) {
-        return logAndReturn(Error::Transport("MQTT connection failed: " + std::string(mosquitto_strerror(rc))));
+    } else if (MOSQ_ERR_SUCCESS != connCallbackData.returnCode) {
+        return logAndReturn(Error::ConnectionRefused("MQTT connection refused: " + explainConnackCode(connCallbackData.returnCode)));
     }
 
     mLogger.info("MQTT connected to broker");
@@ -93,16 +92,14 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     mosquitto_user_data_set(mMosq, this); // use self from now, needed for message callback
     mosquitto_message_callback_set(mMosq, onMessageCallback);
 
-    rc = mosquitto_subscribe(mMosq, nullptr, mClientId.toHex().c_str(), 0);
-    if (MOSQ_ERR_SUCCESS != rc) {
+    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, mClientId.toHex().c_str(), 0))) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
         return logAndReturn(Error::Transport("MQTT subscription to client queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
-    rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0);
-    if (MOSQ_ERR_SUCCESS != rc) {
+    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0))) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
@@ -234,7 +231,7 @@ void MqttMobilusGtwClientImpl::handleMisc()
     scheduleMisc();
 }
 
-void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto*, void* obj, int reasonCode)
+void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto*, void* obj, int returnCode)
 {
     auto ctx = reinterpret_cast<ConnectCallbackContext*>(obj);
 
@@ -242,7 +239,7 @@ void MqttMobilusGtwClientImpl::onConnectCallback(mosquitto*, void* obj, int reas
         return;
     }
 
-    ctx->reasonCode = reasonCode;
+    ctx->returnCode = returnCode;
     ctx->cond.notify();
 }
 
@@ -505,23 +502,22 @@ int MqttMobilusGtwClientImpl::connectMqtt()
     int rc;
 
     if (mDsn.secure) {
-        rc = mosquitto_tls_set(mMosq, mDsn.cacert.has_value() ? mDsn.cacert->c_str() : nullptr, nullptr, nullptr, nullptr, nullptr);
-        if (MOSQ_ERR_SUCCESS != rc) {
+        if (MOSQ_ERR_SUCCESS != (rc = mosquitto_tls_set(mMosq, mDsn.cacert ? mDsn.cacert->c_str() : nullptr, nullptr, nullptr, nullptr, nullptr))) {
             return rc;
         }
-
-        rc = mosquitto_tls_insecure_set(mMosq, mDsn.verify.value_or(true) ? false : true);
-        if (MOSQ_ERR_SUCCESS != rc) {
+        if (MOSQ_ERR_SUCCESS != (rc = mosquitto_tls_insecure_set(mMosq, mDsn.verify.value_or(true) ? false : true))) {
             return rc;
         }
     }
 
     mosquitto_connect_callback_set(mMosq, onConnectCallback);
 
-    rc = mosquitto_connect(mMosq, mDsn.host.c_str(), static_cast<int>(*mDsn.port), kKeepAliveIntervalSecs);
-    mosquitto_username_pw_set(mMosq, mDsn.username.has_value() ? mDsn.username.value().c_str() : nullptr, mDsn.password.has_value() ? mDsn.password.value().c_str() : nullptr);
+    rc = mosquitto_username_pw_set(mMosq, mDsn.username ? mDsn.username->c_str() : nullptr, mDsn.password ? mDsn.password->c_str() : nullptr);
+    if (MOSQ_ERR_SUCCESS != rc) {
+        return rc;
+    }
 
-    return rc;
+    return mosquitto_connect(mMosq, mDsn.host.c_str(), static_cast<int>(*mDsn.port), kKeepAliveIntervalSecs);
 }
 
 void MqttMobilusGtwClientImpl::reconnect()
@@ -592,6 +588,13 @@ Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLi
 std::unique_ptr<crypto::Encryptor> MqttMobilusGtwClientImpl::encryptorFor(crypto::bytes key)
 {
     return std::make_unique<crypto::Aes256Encryptor>(std::move(key));
+}
+
+std::string MqttMobilusGtwClientImpl::explainConnackCode(int code)
+{
+    std::string str = mosquitto_connack_string(code);
+
+    return str.substr(str.rfind(": ") + 2);
 }
 
 MqttMobilusGtwClientImpl::LibInit::LibInit()

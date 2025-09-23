@@ -66,7 +66,7 @@ private:
 
     struct ConnectCallbackContext {
         SelectCondition& cond;
-        int reasonCode;
+        int returnCode;
     };
 
     struct ExpectedMessage {
@@ -121,6 +121,7 @@ private:
     void scheduleMisc();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     std::unique_ptr<crypto::Encryptor> encryptorFor(crypto::bytes key);
+    std::string explainConnackCode(int code);
 
     tl::unexpected<Error> logAndReturn(Error error)
     {

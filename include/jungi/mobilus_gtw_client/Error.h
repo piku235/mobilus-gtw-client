@@ -17,6 +17,7 @@ public:
     static Error Transport(std::string message) { return { ErrorCode::Transport, std::move(message) }; }
     static Error NoConnection(std::string message) { return { ErrorCode::NoConnection, std::move(message) }; }
     static Error ConnectionTimeout(std::string message) { return { ErrorCode::ConnectionTimeout, std::move(message) }; }
+    static Error ConnectionRefused(std::string message) { return { ErrorCode::ConnectionRefused, std::move(message) }; }
     static Error ResponseTimeout(std::string message) { return { ErrorCode::ResponseTimeout, std::move(message) }; }
     static Error Unknown(std::string message) { return { ErrorCode::Unknown, std::move(message) }; }
 

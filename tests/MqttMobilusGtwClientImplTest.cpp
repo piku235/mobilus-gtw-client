@@ -28,7 +28,8 @@ using jungi::mobilus_gtw_client::tests::mocks::MockMqttMobilusActor;
 
 namespace {
 
-static const auto kDsn = MqttDsn::from("mqtt://localhost:1883").value();
+static const auto kMqttDsn = MqttDsn::from("mqtt://127.0.0.1:1883").value();
+static const auto kMqttsDsn = MqttDsn::from("mqtts://admin:nimda@127.0.0.1:8883?cacert=/etc/mosquitto/certs/ca.crt&verify=false").value();
 static const MobilusCredentials kMobCreds = { "admin", "admin" };
 static constexpr std::chrono::milliseconds kTimeout(100);
 
@@ -111,8 +112,22 @@ auto devicesListResponseStub()
 
 TEST(MqttMobilusGtwClientImplTest, Connects)
 {
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
+
+    mobilusActor.start();
+
+    auto r = client.connect();
+    auto sessionInfo = client.sessionInfo();
+
+    ASSERT_TRUE(r.has_value());
+    ASSERT_TRUE(sessionInfo.has_value());
+}
+
+TEST(MqttMobilusGtwClientImplTest, ConnectsViaTls)
+{
+    MqttMobilusGtwClientImpl client(kMqttsDsn, kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -129,7 +144,7 @@ TEST(MqttMobilusGtwClientImplTest, ConnectionTimedOut)
     std::mutex mutex;
     std::condition_variable cv;
 
-    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://localhost:2883").value(), kMobCreds, std::chrono::milliseconds(1), kTimeout);
+    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://127.0.0.1:2883").value(), kMobCreds, std::chrono::milliseconds(1), kTimeout);
     std::thread fakeBroker(fakeMqttBroker, &cv, &mutex, &ready);
 
     std::unique_lock<std::mutex> lock(mutex);
@@ -151,9 +166,26 @@ TEST(MqttMobilusGtwClientImplTest, ConnectionTimedOut)
     ASSERT_EQ("MQTT connection timeout: CONNACK missing", r.error().message());
 }
 
+TEST(MqttMobilusGtwClientImplTest, ConnectionRefusedOnFailedAuthorization)
+{
+    MqttDsn dsn = kMqttsDsn;
+    dsn.password = "invalid";
+
+    MqttMobilusGtwClientImpl client(std::move(dsn), kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 8883);
+
+    mobilusActor.start();
+
+    auto r = client.connect();
+
+    ASSERT_FALSE(r.has_value());
+    ASSERT_EQ(ErrorCode::ConnectionRefused, r.error().code());
+    ASSERT_EQ("MQTT connection refused: not authorised.", r.error().message());
+}
+
 TEST(MqttMobilusGtwClientImplTest, LoginTimedOut)
 {
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, std::chrono::milliseconds(1));
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, std::chrono::milliseconds(1));
 
     auto r = client.connect();
 
@@ -164,8 +196,8 @@ TEST(MqttMobilusGtwClientImplTest, LoginTimedOut)
 
 TEST(MqttMobilusGtwClientImplTest, LoginFailed)
 {
-    MqttMobilusGtwClientImpl client(kDsn, { "admin", "123456" }, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, { "admin", "123456" }, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -179,7 +211,7 @@ TEST(MqttMobilusGtwClientImplTest, LoginFailed)
 TEST(MqttMobilusGtwClientImplTest, HostCannotBeResolved)
 {
     MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://255.255.255.255:1883").value(), kMobCreds, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -192,8 +224,8 @@ TEST(MqttMobilusGtwClientImplTest, HostCannotBeResolved)
 
 TEST(MqttMobilusGtwClientImplTest, InvalidPort)
 {
-    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://localhost:2883").value(), kMobCreds, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(MqttDsn::from("mqtt://127.0.0.1:2883").value(), kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -206,8 +238,8 @@ TEST(MqttMobilusGtwClientImplTest, InvalidPort)
 
 TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
 {
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -218,8 +250,8 @@ TEST(MqttMobilusGtwClientImplTest, DisconnectsAndConnects)
 
 TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
 {
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -237,8 +269,8 @@ TEST(MqttMobilusGtwClientImplTest, SendsRequestAndWaitsForResponse)
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 {
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::CurrentStateResponse>());
     mobilusActor.start();
@@ -255,8 +287,8 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)
 {
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -273,8 +305,8 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)
 TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout, loop);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     proto::CallEvents expectedCallEvents = callEventsStub();
     proto::CallEvents actualCallEvents;
@@ -299,10 +331,10 @@ TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
     Envelope actualEnvelope;
 
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout, loop);
     client.onRawMessage([&](const Envelope& envelope) { actualEnvelope = envelope; });
 
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -317,8 +349,8 @@ TEST(MqttMobilusGtwClientImplTest, CallsRawMessageCallback)
 TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout, loop);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     std::vector<std::unique_ptr<google::protobuf::MessageLite>> subscribedMessages;
     proto::CallEvents expectedCallEvents = callEventsStub();
@@ -353,8 +385,8 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
 TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout, loop);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(devicesListResponseStub()));
     mobilusActor.start();
@@ -377,10 +409,10 @@ TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
 TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout, loop);
     client.useKeepAliveMessage(std::make_unique<proto::DevicesListRequest>());
 
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.mockResponseFor(MessageType::DevicesListRequest, std::make_unique<proto::DevicesListResponse>(devicesListResponseStub()));
     mobilusActor.start();
@@ -405,10 +437,10 @@ TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
     int actualTimeLeft = 0;
 
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout, loop);
     client.onSessionExpiring([&](int timeLeft) { actualTimeLeft = timeLeft; });
 
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
@@ -423,8 +455,8 @@ TEST(MqttMobilusGtwClientImplTest, CallsSessionExpiringCallback)
 TEST(MqttMobilusGtwClientImplTest, ReconnectsOnExpiredSession)
 {
     io::SelectEventLoop loop;
-    MqttMobilusGtwClientImpl client(kDsn, kMobCreds, kTimeout, kTimeout, loop);
-    MockMqttMobilusActor mobilusActor("localhost", 1883);
+    MqttMobilusGtwClientImpl client(kMqttDsn, kMobCreds, kTimeout, kTimeout, loop);
+    MockMqttMobilusActor mobilusActor("127.0.0.1", 1883);
 
     mobilusActor.start();
 
