@@ -40,9 +40,9 @@ jobs:
       uses: namoshek/mosquitto-github-action@v1
       with:
         ports: '1883:1883 8883:8883'
-        certificates: .github/mosquitto/certs
-        config: .github/mosquitto/mosquitto.conf
-        password-file: .github/mosquitto/passwd
+        certificates: ${{ github.workspace }}/.github/mosquitto/certs
+        config: ${{ github.workspace }}/.github/mosquitto/mosquitto.conf
+        password-file: ${{ github.workspace }}/.github/mosquitto/passwd
 
     - name: Configure CMake
       run: >
