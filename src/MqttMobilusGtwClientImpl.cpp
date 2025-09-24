@@ -593,8 +593,9 @@ std::unique_ptr<crypto::Encryptor> MqttMobilusGtwClientImpl::encryptorFor(crypto
 std::string MqttMobilusGtwClientImpl::explainConnackCode(int code)
 {
     std::string str = mosquitto_connack_string(code);
+    auto rpos = str.rfind(": ");
 
-    return str.substr(str.rfind(": ") + 2);
+    return str.substr(rpos != std::string::npos ? rpos + 2 : 0);
 }
 
 MqttMobilusGtwClientImpl::LibInit::LibInit()
