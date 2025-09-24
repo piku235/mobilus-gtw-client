@@ -26,42 +26,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set reusable strings
-        # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
-        id: strings
+      - name: Paths
+        id: paths
         shell: bash
         run: |
-          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          echo "build=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          echo "certs=/etc/mosquitto/certs" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y libmosquitto-dev libssl-dev
 
       - name: Generate certs
         run: |
-          sudo mkdir -p /etc/mosquitto/certs
-          sudo openssl req -x509 -nodes -newkey rsa:2048 -keyout /etc/mosquitto/certs/server.key -out /etc/mosquitto/certs/server.crt -days 1 -subj "/CN=localhost"
-          sudo chmod 644 /etc/mosquitto/certs/server.key /etc/mosquitto/certs/server.crt
+          sudo mkdir -p "${{ steps.paths.outputs.certs }}"
+          sudo openssl req -x509 -nodes -newkey rsa:2048 -keyout "${{ steps.paths.outputs.certs }}/server.key" -out "${{ steps.paths.outputs.certs }}/server.crt" -days 1 -subj "/CN=localhost"
+          sudo chmod 644 "${{ steps.paths.outputs.certs }}/server.key" "${{ steps.paths.outputs.certs }}/server.crt"
 
       - name: Start mosquitto
         uses: namoshek/mosquitto-github-action@v1
         with:
           version: "2.0"
           ports: "1883:1883 8883:8883"
-          certificates: /etc/mosquitto/certs
+          certificates: ${{ steps.paths.outputs.certs }}
           config: ${{ github.workspace }}/.github/mosquitto/mosquitto.conf
           password-file: ${{ github.workspace}}/.github/mosquitto/passwd
 
       - name: Configure CMake
         run: >
-          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          cmake
+          -B ${{ steps.paths.outputs.build }}
+          -S ${{ github.workspace }}
           -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
           -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -S ${{ github.workspace }}
 
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }}
+        run: cmake --build ${{ steps.paths.outputs.build }}
 
       - name: Test
-        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        working-directory: ${{ steps.paths.outputs.build }}
         run: ctest
