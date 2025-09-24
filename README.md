@@ -22,7 +22,6 @@ Use this client to:
 - OpenSSL v3
 - Mosquitto v2.x (v1.x optionally supported)
 - Google Protocol Buffers (protobuf) v2.6.1 (included)
-- Not thread-safe: intended for single-threaded applications only
 
 ## Build
 
@@ -56,7 +55,7 @@ int main() {
         .login({ "admin", "admin" })
         .build();
 
-     // connect to MQTT broker and authenticate with Cosmo GTW
+    // connect to MQTT broker and authenticate with Cosmo GTW
     if (auto e = client.connect(); !e) {
         // print, log or handle error
         return 1;
