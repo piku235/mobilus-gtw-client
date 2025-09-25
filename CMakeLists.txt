@@ -24,7 +24,10 @@ FetchContent_Declare(
 )
 
 set(EXPECTED_BUILD_TESTS OFF)
-FetchContent_MakeAvailable(tl_expected)
+set(EXPECTED_BUILD_PACKAGE OFF)
+
+FetchContent_Populate(tl_expected)
+add_subdirectory(${tl_expected_SOURCE_DIR} ${tl_expected_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 add_subdirectory(include/jungi/mobilus_gtw_client/proto)
 add_subdirectory(src/crypto)
