@@ -15,8 +15,8 @@ include(FetchContent)
 cmake_dependent_option(MOBGTW_BUILD_TESTS "Build mobgtw tests" ON "PROJECT_IS_TOP_LEVEL AND BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING" OFF)
 
 find_package(PkgConfig REQUIRED)
-find_package(OpenSSL REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
+pkg_check_modules(OPENSSL REQUIRED IMPORTED_TARGET libcrypto)
 
 FetchContent_Declare(
   tl_expected
@@ -69,7 +69,7 @@ target_link_libraries(mobilus_gtw_client
     protos
   PRIVATE
     common_compiler_warnings
-    OpenSSL::Crypto
+    PkgConfig::OPENSSL
     PkgConfig::MOSQUITTO
     crypto
 )

@@ -1,4 +1,5 @@
-find_package(OpenSSL REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(OPENSSL REQUIRED IMPORTED_TARGET libcrypto)
 
 add_library(crypto OBJECT
   Aes256Encryptor.cpp
@@ -9,5 +10,5 @@ add_library(crypto OBJECT
 target_link_libraries(crypto 
   PRIVATE
     common_compiler_warnings
-    OpenSSL::Crypto
+    PkgConfig::OPENSSL
 )
