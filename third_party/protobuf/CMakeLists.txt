@@ -10,16 +10,29 @@ ExternalProject_Add(
   UPDATE_DISCONNECTED 1
   CONFIGURE_COMMAND
     autoreconf -f -i -Wall,no-obsolete &&
-    ./configure --with-pic --disable-shared --enable-static --prefix=${CMAKE_BINARY_DIR}/host
+    ./configure CXXFLAGS=-w --with-pic --disable-shared --enable-static --prefix=${CMAKE_BINARY_DIR}/host
   BUILD_IN_SOURCE 1
-  BUILD_COMMAND make CXXFLAGS=-w -j${NCPU}
+  BUILD_COMMAND make -j${NCPU}
   INSTALL_COMMAND make install
   BUILD_BYPRODUCTS
     "${CMAKE_BINARY_DIR}/host/bin/protoc"
     "${CMAKE_BINARY_DIR}/host/lib/libprotobuf-lite.a"
 )
 
+add_library(protobuf-lite STATIC IMPORTED GLOBAL)
+
 if(CMAKE_CROSSCOMPILING)
+  if(NOT DEFINED CROSS_C_FLAGS)
+    set(CROSS_C_FLAGS "")
+  endif()
+  if(NOT DEFINED CROSS_CXX_FLAGS)
+    set(CROSS_CXX_FLAGS "")
+  endif()
+
+  get_filename_component(COMPILER_NAME ${CMAKE_C_COMPILER} NAME_WE)
+  string(REGEX REPLACE "-gcc$" "" CROSS_HOST ${COMPILER_NAME})
+  set(CROSS_CXX_FLAGS "-w ${CROSS_CXX_FLAGS}")
+
   ExternalProject_Add(
     protobuf_target
     DEPENDS protobuf_host
@@ -27,18 +40,14 @@ if(CMAKE_CROSSCOMPILING)
     UPDATE_DISCONNECTED 1
     CONFIGURE_COMMAND
       autoreconf -f -i -Wall,no-obsolete &&
-      ./configure --with-pic --disable-shared --enable-static --host=${CMAKE_SYSTEM_PROCESSOR}-linux-gnu --with-protoc=${PROTOC} --prefix=${CMAKE_BINARY_DIR}/target
+      ./configure CFLAGS=${CROSS_C_FLAGS} CXXFLAGS=${CROSS_CXX_FLAGS} --with-pic --disable-shared --enable-static --host=${CROSS_HOST} --with-protoc=${PROTOC} --prefix=${CMAKE_BINARY_DIR}/target
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make CXXFLAGS=-w -j${NCPU}
+    BUILD_COMMAND make -j${NCPU}
     INSTALL_COMMAND make install
     BUILD_BYPRODUCTS
       "${CMAKE_BINARY_DIR}/target/lib/libprotobuf-lite.a"
   )
-endif()
 
-add_library(protobuf-lite STATIC IMPORTED GLOBAL)
-
-if(CMAKE_CROSSCOMPILING)
   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/target/include")
   add_dependencies(protobuf-lite protobuf_target)
   set_target_properties(protobuf-lite PROPERTIES
