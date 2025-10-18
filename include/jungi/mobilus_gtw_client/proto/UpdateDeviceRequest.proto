@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+import "Device.proto";
+
+package jungi.mobilus_gtw_client.proto;
+option optimize_for = LITE_RUNTIME;
+
+message UpdateDeviceRequest {
+  optional int32 operation_type = 1;
+  optional Device device = 2;
+}
