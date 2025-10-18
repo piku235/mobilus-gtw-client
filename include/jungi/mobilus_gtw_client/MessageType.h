@@ -11,6 +11,8 @@ namespace MessageType {
     constexpr uint8_t DevicesListRequest = 3;
     constexpr uint8_t DevicesListResponse = 4;
     constexpr uint8_t CallEvents = 13;
+    constexpr uint8_t UpdateDeviceRequest = 24;
+    constexpr uint8_t UpdateDeviceResponse = 25;
     constexpr uint8_t CurrentStateRequest = 26;
     constexpr uint8_t CurrentStateResponse = 27;
     constexpr uint8_t DeviceSettingsRequest = 28;

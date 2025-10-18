@@ -12,6 +12,8 @@
 #include "jungi/mobilus_gtw_client/proto/LoginResponse.pb.h"
 #include "jungi/mobilus_gtw_client/proto/NetworkSettingsRequest.pb.h"
 #include "jungi/mobilus_gtw_client/proto/NetworkSettingsResponse.pb.h"
+#include "jungi/mobilus_gtw_client/proto/UpdateDeviceRequest.pb.h"
+#include "jungi/mobilus_gtw_client/proto/UpdateDeviceResponse.pb.h"
 
 namespace jungi::mobilus_gtw_client {
 
@@ -37,6 +39,12 @@ uint8_t ProtoUtils::messageTypeFor(const google::protobuf::MessageLite& message)
     }
     if (!message.GetTypeName().compare(PACKAGE "CallEvents")) {
         return MessageType::CallEvents;
+    }
+    if (!message.GetTypeName().compare(PACKAGE "UpdateDeviceRequest")) {
+        return MessageType::UpdateDeviceRequest;
+    }
+    if (!message.GetTypeName().compare(PACKAGE "UpdateDeviceResponse")) {
+        return MessageType::UpdateDeviceResponse;
     }
     if (!message.GetTypeName().compare(PACKAGE "CurrentStateRequest")) {
         return MessageType::CurrentStateRequest;
@@ -71,6 +79,10 @@ std::unique_ptr<google::protobuf::MessageLite> ProtoUtils::newMessageFor(uint8_t
         return std::make_unique<proto::DeviceSettingsResponse>();
     case MessageType::CallEvents:
         return std::make_unique<proto::CallEvents>();
+    case MessageType::UpdateDeviceRequest:
+        return std::make_unique<proto::UpdateDeviceRequest>();
+    case MessageType::UpdateDeviceResponse:
+        return std::make_unique<proto::UpdateDeviceResponse>();
     case MessageType::CurrentStateRequest:
         return std::make_unique<proto::CurrentStateRequest>();
     case MessageType::CurrentStateResponse:
