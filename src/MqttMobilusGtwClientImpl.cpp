@@ -99,18 +99,18 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
         return logAndReturn(Error::Transport("MQTT subscription to client queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
-    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0))) {
-        mosquitto_disconnect(mMosq);
-        mConnected = false;
-
-        return logAndReturn(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
-    }
-
     if (auto e = login(); !e) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
         return e;
+    }
+
+    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0))) {
+        mosquitto_disconnect(mMosq);
+        mConnected = false;
+
+        return logAndReturn(Error::Transport("MQTT subscription to events queue failed due to: " + std::string(mosquitto_strerror(rc))));
     }
 
     scheduleMisc();
