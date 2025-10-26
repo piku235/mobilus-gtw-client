@@ -565,6 +565,7 @@ void MqttMobilusGtwClientImpl::clearSession()
 
 void MqttMobilusGtwClientImpl::scheduleMisc()
 {
+    mLoop.stopTimer(mMiscTimerId);
     mMiscTimerId = mLoop.startTimer(std::chrono::seconds(1), miscTimerCallback, this); // due to mosquitto_loop_misc() PINGREQ
 }
 
