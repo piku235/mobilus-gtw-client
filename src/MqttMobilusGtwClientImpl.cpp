@@ -451,6 +451,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
     int remaningTime = static_cast<int>(strtol(event.value().c_str(), &end, 10));
 
     if (!event.value().empty() && *end == '\0') {
+        mLogger.info("Mobilus session expiring in " + std::to_string(remaningTime) + "s");
         mSessionExpiringCallback(remaningTime);
 
         if (mKeepAliveMessage) {
@@ -464,6 +465,8 @@ void MqttMobilusGtwClientImpl::handleInvalidSession()
     if (mReconnecting) {
         return;
     }
+
+    mLogger.error("Mobilus session expired or invalid");
 
     (void)disconnect();
 
