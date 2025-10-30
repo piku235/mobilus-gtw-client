@@ -1,4 +1,5 @@
 #include "MqttMobilusGtwClientImpl.h"
+#include "Qos.h"
 #include "crypto/Aes256Encryptor.h"
 #include "crypto/hash.h"
 #include "crypto/utils.h"
@@ -14,8 +15,8 @@
 #include <ctime>
 #include <utility>
 
-static const char kEventsTopic[] = "clients";
-static const char kRequestsTopic[] = "module";
+static constexpr char kEventsTopic[] = "clients";
+static constexpr char kRequestsTopic[] = "module";
 static constexpr int kKeepAliveIntervalSecs = 60;
 
 using std::chrono::steady_clock;
@@ -92,7 +93,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
     mosquitto_user_data_set(mMosq, this); // use self from now, needed for message callback
     mosquitto_message_callback_set(mMosq, onMessageCallback);
 
-    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, mClientId.toHex().c_str(), 0))) {
+    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, mClientId.toHex().c_str(), Qos::AtLeastOnce))) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
@@ -106,7 +107,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
         return e;
     }
 
-    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, 0))) {
+    if (MOSQ_ERR_SUCCESS != (rc = mosquitto_subscribe(mMosq, nullptr, kEventsTopic, Qos::AtMostOnce))) {
         mosquitto_disconnect(mMosq);
         mConnected = false;
 
@@ -141,12 +142,12 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::disconnect()
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::protobuf::MessageLite& message)
 {
-    return send(message, 0);
+    return send(message, Qos::AtMostOnce);
 }
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
 {
-    if (auto e = send(request, 1); !e) {
+    if (auto e = send(request, Qos::AtLeastOnce); !e) {
         return e;
     }
 
@@ -455,7 +456,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
         mSessionExpiringCallback(remaningTime);
 
         if (mKeepAliveMessage) {
-            (void)send(*mKeepAliveMessage);
+            (void)send(*mKeepAliveMessage, Qos::AtLeastOnce);
         }
     }
 }
