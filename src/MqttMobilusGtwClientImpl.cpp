@@ -326,7 +326,7 @@ void MqttMobilusGtwClientImpl::onMessage(const mosquitto_message* mosqMessage)
         return onGeneralMessage(mosqMessage);
     }
 
-    if (!mClientId.toHex().compare(mosqMessage->topic)) {
+    if (mClientId.toHex() == mosqMessage->topic) {
         if (mExpectedMessage) {
             return onExpectedMessage(*mExpectedMessage, mosqMessage);
         }
@@ -443,7 +443,7 @@ void MqttMobilusGtwClientImpl::handleClientCallEvents(const proto::CallEvents& c
 
     auto& event = callEvents.events(0);
 
-    if (!event.value().compare("EXPIRED")) {
+    if ("EXPIRED" == event.value()) {
         handleInvalidSession();
         return;
     }
@@ -551,7 +551,7 @@ void MqttMobilusGtwClientImpl::dispatchQueuedMessages()
         mMessageQueue.pop();
 
         // session call events
-        if (!queuedMessage.topic.compare(mClientId.toHex()) && MessageType::CallEvents == queuedMessage.messageType) {
+        if (queuedMessage.topic == mClientId.toHex() && MessageType::CallEvents == queuedMessage.messageType) {
             handleClientCallEvents(static_cast<const proto::CallEvents&>(*queuedMessage.message));
             continue;
         }
