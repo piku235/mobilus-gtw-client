@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(mobilus_gtw_client VERSION 0.5.2)
+project(mobilus_gtw_client VERSION 0.6.0)
 
 cmake_policy(SET CMP0135 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
@@ -29,7 +29,7 @@ set(EXPECTED_BUILD_PACKAGE OFF)
 FetchContent_Populate(tl_expected)
 add_subdirectory(${tl_expected_SOURCE_DIR} ${tl_expected_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-add_subdirectory(include/jungi/mobilus_gtw_client/proto)
+add_subdirectory(proto)
 add_subdirectory(src/crypto)
 add_subdirectory(third_party/protobuf)
 
