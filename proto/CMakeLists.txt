@@ -2,6 +2,7 @@ set(PROTOC "${CMAKE_BINARY_DIR}/host/bin/protoc")
 file(GLOB PROTO_FILES *.proto)
 
 set(GENERATED_DIR ${CMAKE_CURRENT_BINARY_DIR}/jungi/mobilus_gtw_client/proto)
+file(MAKE_DIRECTORY ${GENERATED_DIR})
 
 foreach(proto ${PROTO_FILES})
   get_filename_component(filename ${proto} NAME_WE)
