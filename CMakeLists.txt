@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.25)
-project(mobilus_gtw_client VERSION 0.6.0)
+cmake_minimum_required(VERSION 3.28)
+project(mobilus_gtw_client VERSION 0.6.1)
 
 cmake_policy(SET CMP0135 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
@@ -18,16 +18,15 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(MOSQUITTO REQUIRED IMPORTED_TARGET libmosquitto)
 pkg_check_modules(OPENSSL REQUIRED IMPORTED_TARGET libcrypto)
 
-FetchContent_Declare(
-  tl_expected
-  URL https://github.com/TartanLlama/expected/archive/refs/tags/v1.3.1.zip
-)
-
 set(EXPECTED_BUILD_TESTS OFF)
 set(EXPECTED_BUILD_PACKAGE OFF)
 
-FetchContent_Populate(tl_expected)
-add_subdirectory(${tl_expected_SOURCE_DIR} ${tl_expected_BINARY_DIR} EXCLUDE_FROM_ALL)
+FetchContent_Declare(
+  tl_expected
+  URL https://github.com/TartanLlama/expected/archive/refs/tags/v1.3.1.zip
+  EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(tl_expected)
 
 add_subdirectory(proto)
 add_subdirectory(src/crypto)
