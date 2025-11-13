@@ -19,31 +19,26 @@ void SelectEventLoop::runFor(std::chrono::milliseconds duration)
     fd_set writeFds;
 
     while (mRun && steady_clock::now() <= untilTime) {
-        auto absoluteDelay = std::chrono::duration_cast<std::chrono::milliseconds>(untilTime - steady_clock::now());
-        auto* closestTimerExpiresAt = &mTimers[0].expiresAt;
-        bool hasActiveTimers = false;
+        bool activeTimers = false;
+        auto nextExpiration = steady_clock::time_point::max();
 
         for (auto& timer : mTimers) {
             if (!timer.isActive()) {
                 continue;
             }
 
-            hasActiveTimers = true;
+            activeTimers = true;
 
-            if (!timer.hasExpired()) {
-                if (timer.expiresAt < *closestTimerExpiresAt) {
-                    closestTimerExpiresAt = &timer.expiresAt;
-                }
+            if (timer.hasExpired()) {
+                auto callback = timer.callback;
+                auto callbackData = timer.callbackData;
 
-                continue;
+                // release slot and then call callback
+                timer = {};
+                callback(callbackData);
+            } else if (timer.expiresAt < nextExpiration) {
+                nextExpiration = timer.expiresAt;
             }
-
-            auto callback = timer.callback;
-            auto callbackData = timer.callbackData;
-
-            // release slot and then call callback
-            timer = {};
-            callback(callbackData);
         }
 
         FD_ZERO(&readFds);
@@ -71,15 +66,18 @@ void SelectEventLoop::runFor(std::chrono::milliseconds duration)
         }
 
         // break the loop
-        if (nfds == kInvalidFd && !hasActiveTimers) {
+        if (nfds == kInvalidFd && !activeTimers) {
             break;
         }
 
-        auto timerDelay = std::chrono::duration_cast<std::chrono::milliseconds>(*closestTimerExpiresAt - steady_clock::now());
-        auto timeout = TimeUtils::convertToTimeval(std::min(timerDelay, absoluteDelay));
+        auto now = steady_clock::now();
+        auto timerDelay = std::min(
+            std::chrono::duration_cast<std::chrono::milliseconds>(untilTime - now),
+            std::chrono::duration_cast<std::chrono::milliseconds>(nextExpiration - now));
+        auto timeout = TimeUtils::convertToTimeval(timerDelay);
 
         if (select(nfds + 1, &readFds, &writeFds, nullptr, &timeout) < 0) {
-            return;
+            break;
         }
 
         for (auto& socketWatch : mSocketWatches) {

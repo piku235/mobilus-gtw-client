@@ -28,11 +28,11 @@ public:
 
 private:
     static constexpr int kSocketWatchCount = 32;
-    static constexpr int kTimerCount = 32;
+    static constexpr int kTimerCount = 64;
     static constexpr int kInvalidFd = -1;
 
     struct Timer {
-        std::chrono::steady_clock::time_point expiresAt = std::chrono::steady_clock::time_point::max();
+        std::chrono::steady_clock::time_point expiresAt;
         TimerCallback callback = nullptr;
         void* callbackData;
 
