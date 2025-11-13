@@ -11,8 +11,8 @@ class SelectEventLoop final : public EventLoop {
 public:
     SelectEventLoop() = default;
 
-    SelectEventLoop(SelectEventLoop&& other) = default;
-    SelectEventLoop& operator=(SelectEventLoop&& other) = default;
+    SelectEventLoop(SelectEventLoop&& other) = delete;
+    SelectEventLoop& operator=(SelectEventLoop&& other) = delete;
 
     SelectEventLoop(const SelectEventLoop& other) = delete;
     SelectEventLoop& operator=(const SelectEventLoop& other) = delete;
