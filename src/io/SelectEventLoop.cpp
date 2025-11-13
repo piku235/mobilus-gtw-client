@@ -11,7 +11,9 @@ namespace jungi::mobilus_gtw_client::io {
 
 void SelectEventLoop::runFor(std::chrono::milliseconds duration)
 {
-    const auto untilTime = std::chrono::milliseconds::max() == duration ? steady_clock::time_point::max() : steady_clock::now() + duration;
+    const auto untilTime = duration >= std::chrono::duration_cast<std::chrono::milliseconds>(steady_clock::time_point::max() - steady_clock::now())
+        ? steady_clock::time_point::max()
+        : steady_clock::now() + duration;
 
     fd_set readFds;
     fd_set writeFds;
