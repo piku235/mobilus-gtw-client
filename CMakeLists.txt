@@ -50,7 +50,6 @@ target_compile_options(common_compiler_warnings
 add_library(mobilus_gtw_client
   src/io/SelectEventLoop.cpp
   src/ExponentialBackoff.cpp
-  src/TimeUtils.cpp
   src/ProtoUtils.cpp
   src/ClientId.cpp
   src/Envelope.cpp

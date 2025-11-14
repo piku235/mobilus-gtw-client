@@ -5,22 +5,20 @@
 #include <algorithm>
 #include <sys/select.h>
 
-using std::chrono::steady_clock;
-
 namespace jungi::mobilus_gtw_client::io {
 
-void SelectEventLoop::runFor(std::chrono::milliseconds duration)
+void SelectEventLoop::runFor(Clock::duration duration)
 {
-    const auto untilTime = duration >= std::chrono::duration_cast<std::chrono::milliseconds>(steady_clock::time_point::max() - steady_clock::now())
-        ? steady_clock::time_point::max()
-        : steady_clock::now() + duration;
+    const auto untilTime = duration >= (Clock::time_point::max() - Clock::now())
+        ? Clock::time_point::max()
+        : Clock::now() + duration;
 
     fd_set readFds;
     fd_set writeFds;
 
-    while (mRun && steady_clock::now() <= untilTime) {
+    while (mRun && Clock::now() <= untilTime) {
         bool activeTimers = false;
-        auto nextExpiration = steady_clock::time_point::max();
+        auto nextExpiration = Clock::time_point::max();
 
         for (auto& timer : mTimers) {
             if (!timer.isActive()) {
@@ -70,10 +68,8 @@ void SelectEventLoop::runFor(std::chrono::milliseconds duration)
             break;
         }
 
-        auto now = steady_clock::now();
-        auto timerDelay = std::min(
-            std::chrono::duration_cast<std::chrono::milliseconds>(untilTime - now),
-            std::chrono::duration_cast<std::chrono::milliseconds>(nextExpiration - now));
+        auto now = Clock::now();
+        auto timerDelay = std::min(untilTime - now, nextExpiration - now);
         auto timeout = TimeUtils::convertToTimeval(timerDelay);
 
         if (select(nfds + 1, &readFds, &writeFds, nullptr, &timeout) < 0) {
@@ -117,7 +113,7 @@ EventLoop::TimerId SelectEventLoop::startTimer(std::chrono::milliseconds delay, 
             continue;
         }
 
-        timer.expiresAt = steady_clock::now() + delay;
+        timer.expiresAt = Clock::now() + delay;
         timer.callback = callback;
         timer.callbackData = callbackData;
 

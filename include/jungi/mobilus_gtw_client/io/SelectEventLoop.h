@@ -18,7 +18,13 @@ public:
     SelectEventLoop& operator=(const SelectEventLoop& other) = delete;
 
     void run();
-    void runFor(std::chrono::milliseconds duration);
+
+    template <typename Rep, typename Period>
+    void runFor(std::chrono::duration<Rep, Period> duration)
+    {
+        runFor(std::chrono::duration_cast<Clock::duration>(duration));
+    }
+
     void stop();
 
     TimerId startTimer(std::chrono::milliseconds delay, TimerCallback callback, void* callbackData) override;
@@ -27,17 +33,19 @@ public:
     void unwatchSocket(int socketFd) override;
 
 private:
+    using Clock = std::chrono::steady_clock;
+
     static constexpr int kSocketWatchCount = 32;
     static constexpr int kTimerCount = 64;
     static constexpr int kInvalidFd = -1;
 
     struct Timer {
-        std::chrono::steady_clock::time_point expiresAt;
+        Clock::time_point expiresAt;
         TimerCallback callback = nullptr;
         void* callbackData;
 
         bool isActive() const { return nullptr != callback; }
-        bool hasExpired() const { return expiresAt <= std::chrono::steady_clock::now(); }
+        bool hasExpired() const { return expiresAt <= Clock::now(); }
     };
 
     struct SocketWatch {
@@ -50,6 +58,8 @@ private:
     Timer mTimers[kTimerCount];
     SocketWatch mSocketWatches[kSocketWatchCount];
     bool mRun = true;
+
+    void runFor(Clock::duration duration);
 };
 
 }
