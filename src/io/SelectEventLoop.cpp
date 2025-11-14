@@ -14,7 +14,6 @@ void SelectEventLoop::runUntil(Clock::time_point time)
 
     while (mRun && Clock::now() <= time) {
         bool activeTimers = false;
-        auto nextExpiration = Clock::time_point::max();
 
         for (auto& timer : mTimers) {
             if (!timer.isActive()) {
@@ -30,7 +29,13 @@ void SelectEventLoop::runUntil(Clock::time_point time)
                 // release slot and then call callback
                 timer = {};
                 callback(callbackData);
-            } else if (timer.expiresAt < nextExpiration) {
+            }
+        }
+
+        // consider new timers as well
+        auto nextExpiration = Clock::time_point::max();
+        for (auto& timer : mTimers) {
+            if (timer.isActive() && timer.expiresAt < nextExpiration) {
                 nextExpiration = timer.expiresAt;
             }
         }
