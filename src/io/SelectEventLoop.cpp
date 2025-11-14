@@ -7,16 +7,12 @@
 
 namespace jungi::mobilus_gtw_client::io {
 
-void SelectEventLoop::runFor(Clock::duration duration)
+void SelectEventLoop::runUntil(Clock::time_point time)
 {
-    const auto untilTime = duration >= (Clock::time_point::max() - Clock::now())
-        ? Clock::time_point::max()
-        : Clock::now() + duration;
-
     fd_set readFds;
     fd_set writeFds;
 
-    while (mRun && Clock::now() <= untilTime) {
+    while (mRun && Clock::now() <= time) {
         bool activeTimers = false;
         auto nextExpiration = Clock::time_point::max();
 
@@ -69,7 +65,7 @@ void SelectEventLoop::runFor(Clock::duration duration)
         }
 
         auto now = Clock::now();
-        auto timerDelay = std::min(untilTime - now, nextExpiration - now);
+        auto timerDelay = std::min(time - now, nextExpiration - now);
         auto timeout = TimeUtils::convertToTimeval(timerDelay);
 
         if (select(nfds + 1, &readFds, &writeFds, nullptr, &timeout) < 0) {
@@ -97,7 +93,7 @@ void SelectEventLoop::runFor(Clock::duration duration)
 
 void SelectEventLoop::run()
 {
-    runFor(std::chrono::milliseconds::max());
+    runUntil(Clock::time_point::max());
 }
 
 void SelectEventLoop::stop()

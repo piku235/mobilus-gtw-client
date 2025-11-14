@@ -19,10 +19,16 @@ public:
 
     void run();
 
-    template <typename Rep, typename Period>
-    void runFor(std::chrono::duration<Rep, Period> duration)
+    template <typename R, typename P>
+    void runFor(std::chrono::duration<R, P> duration)
     {
-        runFor(std::chrono::duration_cast<Clock::duration>(duration));
+        runUntil(Clock::now() + duration);
+    }
+
+    template <typename C, typename D>
+    void runFor(std::chrono::time_point<C, D> time)
+    {
+        runUntil(std::chrono::time_point_cast<Clock::duration>(time));
     }
 
     void stop();
@@ -59,7 +65,7 @@ private:
     SocketWatch mSocketWatches[kSocketWatchCount];
     bool mRun = true;
 
-    void runFor(Clock::duration duration);
+    void runUntil(Clock::time_point time);
 };
 
 }
