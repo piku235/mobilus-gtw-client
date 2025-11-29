@@ -1,5 +1,5 @@
 #include "MockMqttMobilusActorImpl.h"
-#include "crypto/Aes256Encryptor.h"
+#include "crypto/EvpEncryptor.h"
 #include "crypto/hash.h"
 #include "crypto/utils.h"
 #include "jungi/mobilus_gtw_client/EventNumber.h"
@@ -22,6 +22,7 @@
 using namespace jungi::mobilus_gtw_client::io;
 
 static const auto kHashedPassword = jungi::mobilus_gtw_client::crypto::sha256(kPassword);
+static const auto kEncryptor = jungi::mobilus_gtw_client::crypto::EvpEncryptor::Aes256Cfb128();
 
 template <class TContainer>
 static std::string bin2hex(const TContainer& buf)
@@ -91,18 +92,16 @@ bool MockMqttMobilusActorImpl::connect()
 void MockMqttMobilusActorImpl::handle(ReplyClientCommand& cmd)
 {
     auto messageType = ProtoUtils::messageTypeFor(*cmd.message);
-    auto& encryptor = MessageType::CallEvents == messageType ? mPublicEncryptor : mPrivateEncryptor;
+    auto& key = MessageType::CallEvents == messageType ? mPublicKey : mPrivateKey;
 
-    if (!mLoggedClientId.empty() && encryptor) {
-        send(mLoggedClientId, *cmd.message, *encryptor);
+    if (!mLoggedClientId.empty()) {
+        send(mLoggedClientId, *cmd.message, key);
     }
 }
 
 void MockMqttMobilusActorImpl::handle(ShareMessageCommand& cmd)
 {
-    if (mPublicEncryptor) {
-        send(kEventsTopic, *cmd.message, *mPublicEncryptor);
-    }
+    send(kEventsTopic, *cmd.message, mPublicKey);
 }
 
 void MockMqttMobilusActorImpl::handle(MockResponseCommand& cmd)
@@ -141,7 +140,7 @@ void MockMqttMobilusActorImpl::handleSocketEvents(SocketEvents revents)
     }
 }
 
-bool MockMqttMobilusActorImpl::send(const std::string& topic, const google::protobuf::MessageLite& message, const crypto::Encryptor& encryptor)
+bool MockMqttMobilusActorImpl::send(const std::string& topic, const google::protobuf::MessageLite& message, const crypto::bytes& key)
 {
     if (nullptr == mMosq) {
         return false;
@@ -149,7 +148,7 @@ bool MockMqttMobilusActorImpl::send(const std::string& topic, const google::prot
 
     auto envelope = envelopeFor(message);
 
-    envelope.messageBody = encryptor.encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+    envelope.messageBody = kEncryptor.encrypt(envelope.messageBody, key, crypto::timestamp2iv(envelope.timestamp));
     auto serialized = envelope.serialize();
 
     int rc = mosquitto_publish(mMosq, nullptr, topic.c_str(), serialized.size(), serialized.data(), 0, false);
@@ -185,22 +184,20 @@ void MockMqttMobilusActorImpl::handleLoginRequest(const Envelope& envelope)
         return;
     }
 
-    crypto::Aes256Encryptor encryptor(std::vector<uint8_t>(loginRequest.password().begin(), loginRequest.password().end()));
+    auto key = crypto::bytes(loginRequest.password().begin(), loginRequest.password().end());
     auto expectedPassword = std::string(kHashedPassword.begin(), kHashedPassword.end());
 
     if (loginRequest.login() != kUsername || loginRequest.password() != expectedPassword) {
         proto::LoginResponse loginResponse;
 
         loginResponse.set_login_status(1);
-        send(bin2hex(envelope.clientId), loginResponse, encryptor);
+        send(bin2hex(envelope.clientId), loginResponse, key);
 
         return;
     }
 
     mPublicKey = randomKey();
     mPrivateKey = randomKey();
-    mPublicEncryptor = std::make_unique<crypto::Aes256Encryptor>(mPublicKey);
-    mPrivateEncryptor = std::make_unique<crypto::Aes256Encryptor>(mPrivateKey);
     mLoggedClientId = bin2hex(envelope.clientId);
 
     proto::LoginResponse loginResponse;
@@ -212,16 +209,12 @@ void MockMqttMobilusActorImpl::handleLoginRequest(const Envelope& envelope)
     loginResponse.set_public_key(mPublicKey.data(), mPublicKey.size());
     loginResponse.set_private_key(mPrivateKey.data(), mPrivateKey.size());
 
-    send(mLoggedClientId, loginResponse, encryptor);
+    send(mLoggedClientId, loginResponse, key);
 }
 
 void MockMqttMobilusActorImpl::handleMockResponse(const Envelope& envelope)
 {
-    if (!mPrivateEncryptor) {
-        return;
-    }
-
-    auto decryptedBody = mPrivateEncryptor->decrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+    auto decryptedBody = kEncryptor.decrypt(envelope.messageBody, mPrivateKey, crypto::timestamp2iv(envelope.timestamp));
     auto message = ProtoUtils::newMessageFor(envelope.messageType);
 
     if (!message) {
@@ -234,7 +227,7 @@ void MockMqttMobilusActorImpl::handleMockResponse(const Envelope& envelope)
 
     auto it = mMockResponses.find(envelope.messageType);
     if (it != mMockResponses.end()) {
-        send(bin2hex(envelope.clientId), *it->second, *mPrivateEncryptor);
+        send(bin2hex(envelope.clientId), *it->second, mPrivateKey);
     }
 }
 

@@ -9,6 +9,7 @@ namespace jungi::mobilus_gtw_client {
 class Error final {
 public:
     static Error InvalidSession(std::string message) { return { ErrorCode::InvalidSession, std::move(message) }; }
+    static Error NoSession(std::string message) { return { ErrorCode::NoSession, std::move(message) }; }
     static Error LoginFailed(std::string message) { return { ErrorCode::LoginFailed, std::move(message) }; }
     static Error LoginTimeout(std::string message) { return { ErrorCode::LoginTimeout, std::move(message) }; }
     static Error BadResponse(std::string message) { return { ErrorCode::BadResponse, std::move(message) }; }

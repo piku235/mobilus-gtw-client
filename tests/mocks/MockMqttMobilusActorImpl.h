@@ -103,15 +103,13 @@ private:
     uint16_t mPort;
     crypto::bytes mPublicKey;
     crypto::bytes mPrivateKey;
-    std::unique_ptr<crypto::Encryptor> mPublicEncryptor;
-    std::unique_ptr<crypto::Encryptor> mPrivateEncryptor;
     MockResponseMap mMockResponses;
     std::string mLoggedClientId;
 
     static void onMessageCallback(mosquitto* mosq, void* self, const mosquitto_message* message) { reinterpret_cast<MockMqttMobilusActorImpl*>(self)->onMessage(message); }
     void onMessage(const mosquitto_message* message);
 
-    bool send(const std::string& topic, const google::protobuf::MessageLite& message, const crypto::Encryptor& encryptor);
+    bool send(const std::string& topic, const google::protobuf::MessageLite& message, const crypto::bytes& key);
     crypto::bytes randomKey();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
     void handleLoginRequest(const Envelope& envelope);

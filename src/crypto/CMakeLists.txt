@@ -2,7 +2,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(OPENSSL REQUIRED IMPORTED_TARGET libcrypto)
 
 add_library(crypto OBJECT
-  Aes256Encryptor.cpp
+  EvpEncryptor.cpp
   hash.cpp
   utils.cpp
 )

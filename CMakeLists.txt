@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(mobilus_gtw_client VERSION 0.7.0)
+project(mobilus_gtw_client VERSION 0.8.0)
 
 cmake_policy(SET CMP0135 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)

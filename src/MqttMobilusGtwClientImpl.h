@@ -3,7 +3,6 @@
 #include "ClientId.h"
 #include "ExponentialBackoff.h"
 #include "SelectCondition.h"
-#include "crypto/Encryptor.h"
 #include "jungi/mobilus_gtw_client/Envelope.h"
 #include "jungi/mobilus_gtw_client/MobilusCredentials.h"
 #include "jungi/mobilus_gtw_client/MqttDsn.h"
@@ -86,12 +85,10 @@ private:
     io::EventLoop& mLoop;
     logging::Logger& mLogger;
     std::unique_ptr<google::protobuf::MessageLite> mKeepAliveMessage;
-    SessionExpiringCallback mSessionExpiringCallback = [](int) {};
-    RawMessageCallback mRawMessageCallback = [](const Envelope&) {};
+    SessionExpiringCallback mSessionExpiringCallback = [](int) { };
+    RawMessageCallback mRawMessageCallback = [](const Envelope&) { };
     std::queue<QueuedMessage> mMessageQueue;
     MessageBus mMessageBus;
-    std::unique_ptr<crypto::Encryptor> mPublicEncryptor;
-    std::unique_ptr<crypto::Encryptor> mPrivateEncryptor;
     std::optional<SessionInformation> mSessionInfo;
     ExpectedMessage* mExpectedMessage = nullptr;
     bool mConnected = false;
@@ -117,10 +114,8 @@ private:
     void handleInvalidSession();
     void handleMisc();
     void dispatchQueuedMessages();
-    void clearSession();
     void scheduleMisc();
     Envelope envelopeFor(const google::protobuf::MessageLite& message);
-    std::unique_ptr<crypto::Encryptor> encryptorFor(crypto::bytes key);
     std::string explainConnackCode(int code);
 
     tl::unexpected<Error> logAndReturn(Error error)

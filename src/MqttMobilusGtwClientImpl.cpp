@@ -1,6 +1,6 @@
 #include "MqttMobilusGtwClientImpl.h"
 #include "Qos.h"
-#include "crypto/Aes256Encryptor.h"
+#include "crypto/EvpEncryptor.h"
 #include "crypto/hash.h"
 #include "crypto/utils.h"
 #include "jungi/mobilus_gtw_client/EventNumber.h"
@@ -15,11 +15,13 @@
 #include <ctime>
 #include <utility>
 
+using jungi::mobilus_gtw_client::crypto::EvpEncryptor;
+using std::chrono::steady_clock;
+
 static constexpr char kEventsTopic[] = "clients";
 static constexpr char kRequestsTopic[] = "module";
 static constexpr int kKeepAliveIntervalSecs = 60;
-
-using std::chrono::steady_clock;
+static const auto kEncryptor = EvpEncryptor::Aes256Cfb128();
 
 namespace jungi::mobilus_gtw_client {
 
@@ -122,7 +124,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::connect()
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::disconnect()
 {
-    clearSession();
+    mSessionInfo.reset();
 
     if (mConnected) {
         mLoop.unwatchSocket(mosquitto_socket(mMosq));
@@ -264,11 +266,11 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::prot
     Envelope envelope = envelopeFor(message);
 
     if (MessageType::LoginRequest != envelope.messageType) {
-        if (!mPrivateEncryptor) {
-            return logAndReturn(Error::Unknown("Private key is missing which should not happen in this client state"));
+        if (!mSessionInfo) {
+            return logAndReturn(Error::NoSession("There is no open session"));
         }
 
-        envelope.messageBody = mPrivateEncryptor->encrypt(envelope.messageBody, crypto::timestamp2iv(envelope.timestamp));
+        envelope.messageBody = kEncryptor.encrypt(envelope.messageBody, mSessionInfo->privateKey, crypto::timestamp2iv(envelope.timestamp));
     }
 
     auto payload = envelope.serialize();
@@ -290,7 +292,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
     request.set_login(mMobilusCreds.username);
     request.set_password(hashedPassword.data(), hashedPassword.size());
 
-    mPrivateEncryptor = encryptorFor(std::move(hashedPassword));
+    // mPrivateEncryptor =
 
     if (auto e = sendRequest(request, response); !e) {
         if (ErrorCode::ResponseTimeout == e.error().code()) {
@@ -304,16 +306,11 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
         return logAndReturn(Error::LoginFailed("Mobilus authentication has failed, possibly wrong credentials provided"));
     }
 
-    auto publicKey = crypto::bytes(response.public_key().begin(), response.public_key().end());
-    auto privateKey = crypto::bytes(response.private_key().begin(), response.private_key().end());
-
-    mPublicEncryptor = encryptorFor(publicKey);
-    mPrivateEncryptor = encryptorFor(privateKey);
     mSessionInfo = {
         response.user_id(),
         response.admin(),
-        std::move(publicKey),
-        std::move(privateKey),
+        crypto::bytes(response.public_key().begin(), response.public_key().end()),
+        crypto::bytes(response.private_key().begin(), response.private_key().end()),
         response.serial_number(),
     };
 
@@ -357,19 +354,20 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
         return;
     }
 
-    auto& encryptor = MessageType::CallEvents == envelope->messageType ? mPublicEncryptor : mPrivateEncryptor;
-    if (!encryptor) {
-        mLogger.error("Missing encryptor for message type: " + std::to_string(envelope->messageType));
+    if (!mSessionInfo) {
+        mLogger.error("There is no open session");
         return;
     }
 
+    auto& key = MessageType::CallEvents == envelope->messageType ? mSessionInfo->publicKey : mSessionInfo->privateKey;
     auto message = ProtoUtils::newMessageFor(envelope->messageType);
+
     if (!message) {
         mLogger.error("Missing proto for message type: " + std::to_string(envelope->messageType));
         return;
     }
 
-    auto decryptedBody = encryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
+    auto decryptedBody = kEncryptor.decrypt(envelope->messageBody, key, crypto::timestamp2iv(envelope->timestamp));
 
     if (!message->ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
         mLogger.error("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
@@ -416,14 +414,14 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
         return;
     }
 
-    if (!mPrivateEncryptor) {
-        expectedMessage.error = Error::Unknown("Missing private encryptor for message type: " + std::to_string(envelope->messageType));
+    if (!mSessionInfo) {
+        expectedMessage.error = Error::NoSession("There is no open session");
         cond.notify();
 
         return;
     }
 
-    auto decryptedBody = mPrivateEncryptor->decrypt(envelope->messageBody, crypto::timestamp2iv(envelope->timestamp));
+    auto decryptedBody = kEncryptor.decrypt(envelope->messageBody, mSessionInfo->privateKey, crypto::timestamp2iv(envelope->timestamp));
 
     if (!expectedMessage.expectedMessage.ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
         expectedMessage.error = Error::BadMessage("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
@@ -488,7 +486,7 @@ void MqttMobilusGtwClientImpl::handleLostConnection(int rc)
 
     mConnected = false;
     mReconnecting = true;
-    clearSession();
+    mSessionInfo.reset();
 }
 
 int MqttMobilusGtwClientImpl::connectMqtt()
@@ -560,13 +558,6 @@ void MqttMobilusGtwClientImpl::dispatchQueuedMessages()
     }
 }
 
-void MqttMobilusGtwClientImpl::clearSession()
-{
-    mPublicEncryptor = nullptr;
-    mPrivateEncryptor = nullptr;
-    mSessionInfo.reset();
-}
-
 void MqttMobilusGtwClientImpl::scheduleMisc()
 {
     mLoop.stopTimer(mMiscTimerId);
@@ -588,11 +579,6 @@ Envelope MqttMobilusGtwClientImpl::envelopeFor(const google::protobuf::MessageLi
         0,
         messageBody,
     };
-}
-
-std::unique_ptr<crypto::Encryptor> MqttMobilusGtwClientImpl::encryptorFor(crypto::bytes key)
-{
-    return std::make_unique<crypto::Aes256Encryptor>(std::move(key));
 }
 
 std::string MqttMobilusGtwClientImpl::explainConnackCode(int code)
