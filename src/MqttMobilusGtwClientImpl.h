@@ -72,7 +72,7 @@ private:
         SelectCondition& cond;
         uint8_t expectedMessageType;
         google::protobuf::MessageLite& expectedMessage;
-        uint8_t responseStatus = 0xFF;
+        const std::vector<uint8_t>& key;
         std::optional<Error> error = std::nullopt;
     };
 
@@ -105,6 +105,7 @@ private:
     int connectMqtt();
     void reconnect();
     Result<> send(const google::protobuf::MessageLite& message, int qos);
+    Result<> sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response, const std::vector<uint8_t>& key);
     Result<> login();
     void onMessage(const mosquitto_message* mosqMessage);
     void onGeneralMessage(const mosquitto_message* mosqMessage);

@@ -149,30 +149,11 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::prot
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
 {
-    if (auto e = send(request, Qos::AtLeastOnce); !e) {
-        return e;
+    if (!mSessionInfo) {
+        return logAndReturn(Error::NoSession("No open session"));
     }
 
-    SelectCondition cond(*this, mosquitto_socket(mMosq), mResponseTimeout);
-    ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response };
-
-    mExpectedMessage = &expectedMessage;
-    cond.wait();
-    mExpectedMessage = nullptr;
-
-    if (!cond.condition()) {
-        return logAndReturn(Error::ResponseTimeout("Response timed out"));
-    }
-
-    if (expectedMessage.error) {
-        if (ErrorCode::InvalidSession == expectedMessage.error->code()) {
-            handleInvalidSession();
-        }
-
-        return logAndReturn(std::move(*expectedMessage.error));
-    }
-
-    return {};
+    return sendRequest(request, response, mSessionInfo->privateKey);
 }
 
 io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
@@ -267,7 +248,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::prot
 
     if (MessageType::LoginRequest != envelope.messageType) {
         if (!mSessionInfo) {
-            return logAndReturn(Error::NoSession("There is no open session"));
+            return logAndReturn(Error::NoSession("No open session"));
         }
 
         envelope.messageBody = kEncryptor.encrypt(envelope.messageBody, mSessionInfo->privateKey, crypto::timestamp2iv(envelope.timestamp));
@@ -283,6 +264,34 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::prot
     return {};
 }
 
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response, const std::vector<uint8_t>& key)
+{
+    if (auto e = send(request, Qos::AtLeastOnce); !e) {
+        return e;
+    }
+
+    SelectCondition cond(*this, mosquitto_socket(mMosq), mResponseTimeout);
+    ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response, key };
+
+    mExpectedMessage = &expectedMessage;
+    cond.wait();
+    mExpectedMessage = nullptr;
+
+    if (!cond.condition()) {
+        return logAndReturn(Error::ResponseTimeout("Response timed out"));
+    }
+
+    if (expectedMessage.error) {
+        if (ErrorCode::InvalidSession == expectedMessage.error->code()) {
+            handleInvalidSession();
+        }
+
+        return logAndReturn(std::move(*expectedMessage.error));
+    }
+
+    return {};
+}
+
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
 {
     proto::LoginRequest request;
@@ -292,9 +301,7 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()
     request.set_login(mMobilusCreds.username);
     request.set_password(hashedPassword.data(), hashedPassword.size());
 
-    // mPrivateEncryptor =
-
-    if (auto e = sendRequest(request, response); !e) {
+    if (auto e = sendRequest(request, response, hashedPassword); !e) {
         if (ErrorCode::ResponseTimeout == e.error().code()) {
             return logAndReturn(Error::LoginTimeout("Login timed out"));
         }
@@ -355,7 +362,7 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
     }
 
     if (!mSessionInfo) {
-        mLogger.error("There is no open session");
+        mLogger.error("No open session");
         return;
     }
 
@@ -391,8 +398,6 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
 
     mRawMessageCallback(*envelope);
 
-    expectedMessage.responseStatus = envelope->responseStatus;
-
     if (Envelope::ResponseStatus::InvalidSession == envelope->responseStatus) {
         expectedMessage.error = Error::InvalidSession("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
         cond.notify();
@@ -414,14 +419,7 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
         return;
     }
 
-    if (!mSessionInfo) {
-        expectedMessage.error = Error::NoSession("There is no open session");
-        cond.notify();
-
-        return;
-    }
-
-    auto decryptedBody = kEncryptor.decrypt(envelope->messageBody, mSessionInfo->privateKey, crypto::timestamp2iv(envelope->timestamp));
+    auto decryptedBody = kEncryptor.decrypt(envelope->messageBody, expectedMessage.key, crypto::timestamp2iv(envelope->timestamp));
 
     if (!expectedMessage.expectedMessage.ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
         expectedMessage.error = Error::BadMessage("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
