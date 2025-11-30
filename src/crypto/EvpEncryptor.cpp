@@ -17,7 +17,7 @@ bytes EvpEncryptor::encrypt(const bytes& plaintext, const bytes& key, const byte
     EVP_EncryptInit_ex(ctx, mCipher, nullptr, key.data(), iv.data());
     EVP_CIPHER_CTX_set_padding(ctx, 0);
 
-    EVP_EncryptUpdate(ctx, ciphertext.data(), &len, reinterpret_cast<const uint8_t*>(plaintext.data()), static_cast<int>(plaintext.size()));
+    EVP_EncryptUpdate(ctx, ciphertext.data(), &len, reinterpret_cast<const unsigned char*>(plaintext.data()), static_cast<int>(plaintext.size()));
     totalLen = len;
 
     EVP_EncryptFinal_ex(ctx, ciphertext.data() + len, &len);
@@ -40,10 +40,10 @@ bytes EvpEncryptor::decrypt(const bytes& ciphertext, const bytes& key, const byt
     EVP_DecryptInit_ex(ctx, mCipher, nullptr, key.data(), iv.data());
     EVP_CIPHER_CTX_set_padding(ctx, 0);
 
-    EVP_DecryptUpdate(ctx, reinterpret_cast<uint8_t*>(plaintext.data()), &len, reinterpret_cast<const uint8_t*>(ciphertext.data()), static_cast<int>(ciphertext.size()));
+    EVP_DecryptUpdate(ctx, reinterpret_cast<unsigned char*>(plaintext.data()), &len, reinterpret_cast<const unsigned char*>(ciphertext.data()), static_cast<int>(ciphertext.size()));
     totalLen = len;
 
-    EVP_DecryptFinal_ex(ctx, reinterpret_cast<uint8_t*>(plaintext.data() + len), &len);
+    EVP_DecryptFinal_ex(ctx, reinterpret_cast<unsigned char*>(plaintext.data() + len), &len);
     totalLen += len;
 
     EVP_CIPHER_CTX_free(ctx);
