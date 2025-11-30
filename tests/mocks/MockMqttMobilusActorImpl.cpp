@@ -22,7 +22,7 @@
 using namespace jungi::mobilus_gtw_client::io;
 
 static const auto kHashedPassword = jungi::mobilus_gtw_client::crypto::sha256(kPassword);
-static const auto kEncryptor = jungi::mobilus_gtw_client::crypto::EvpEncryptor::Aes256Cfb128();
+static const auto kEncryptor = jungi::mobilus_gtw_client::crypto::EvpEncryptor::Aes256_cfb128();
 
 template <class TContainer>
 static std::string bin2hex(const TContainer& buf)

@@ -21,7 +21,7 @@ using std::chrono::steady_clock;
 static constexpr char kEventsTopic[] = "clients";
 static constexpr char kRequestsTopic[] = "module";
 static constexpr int kKeepAliveIntervalSecs = 60;
-static const auto kEncryptor = EvpEncryptor::Aes256Cfb128();
+static const auto kEncryptor = EvpEncryptor::Aes256_cfb128();
 
 namespace jungi::mobilus_gtw_client {
 
