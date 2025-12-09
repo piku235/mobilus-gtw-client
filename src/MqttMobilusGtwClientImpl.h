@@ -72,10 +72,10 @@ private:
         int returnCode;
     };
 
-    struct ExpectedMessage {
+    struct ExpectedResponse {
         SelectCondition& cond;
-        uint8_t expectedMessageType;
-        google::protobuf::MessageLite& expectedMessage;
+        uint8_t messageType;
+        google::protobuf::MessageLite& message;
         const std::vector<uint8_t>& key;
         std::optional<Error> error = std::nullopt;
     };
@@ -94,7 +94,7 @@ private:
     std::queue<QueuedMessage> mMessageQueue;
     MessageBus mMessageBus;
     std::optional<SessionInformation> mSessionInfo;
-    ExpectedMessage* mExpectedMessage = nullptr;
+    ExpectedResponse* mExpectedResponse = nullptr;
     bool mConnected = false;
     bool mReconnecting = false;
     ExponentialBackoff mReconnectDelay = { std::chrono::milliseconds(100), std::chrono::minutes(2) };
@@ -114,7 +114,7 @@ private:
     Result<> login();
     void onMessage(const mosquitto_message* mosqMessage);
     void onGeneralMessage(const mosquitto_message* mosqMessage);
-    void onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage);
+    void onExpectedResponse(ExpectedResponse& expectedResponse, const mosquitto_message* mosqMessage);
     void handleClientCallEvents(const proto::CallEvents& callEvents);
     void handleLostConnection(int rc);
     void handleInvalidSession();

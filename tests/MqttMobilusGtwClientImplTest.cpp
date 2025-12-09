@@ -281,8 +281,8 @@ TEST(MqttMobilusGtwClientImplTest, SendRequestFailsForUnexpectedResponse)
     auto r = client.sendRequest(proto::DevicesListRequest(), response);
 
     ASSERT_FALSE(r.has_value());
-    ASSERT_EQ(ErrorCode::UnexpectedMessage, r.error().code());
-    ASSERT_EQ("Expected to get message of code: 4 but got: 27", r.error().message());
+    ASSERT_EQ(ErrorCode::UnexpectedResponse, r.error().code());
+    ASSERT_EQ("Expected to get response of message type: 4, but got: 27", r.error().message());
 }
 
 TEST(MqttMobilusGtwClientImplTest, SendRequestResponseTimeouts)

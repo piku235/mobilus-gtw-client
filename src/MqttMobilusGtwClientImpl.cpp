@@ -297,22 +297,22 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
     }
 
     SelectCondition cond(*this, mosquitto_socket(mMosq), mResponseTimeout);
-    ExpectedMessage expectedMessage = { cond, ProtoUtils::messageTypeFor(response), response, key };
+    ExpectedResponse expectedResponse = { cond, ProtoUtils::messageTypeFor(response), response, key };
 
-    mExpectedMessage = &expectedMessage;
+    mExpectedResponse = &expectedResponse;
     cond.wait();
-    mExpectedMessage = nullptr;
+    mExpectedResponse = nullptr;
 
     if (!cond.condition()) {
         return logAndReturn(Error::ResponseTimeout("Response timed out"));
     }
 
-    if (expectedMessage.error) {
-        if (ErrorCode::InvalidSession == expectedMessage.error->code()) {
+    if (expectedResponse.error) {
+        if (ErrorCode::InvalidSession == expectedResponse.error->code()) {
             handleInvalidSession();
         }
 
-        return logAndReturn(std::move(*expectedMessage.error));
+        return logAndReturn(std::move(*expectedResponse.error));
     }
 
     return {};
@@ -366,8 +366,8 @@ void MqttMobilusGtwClientImpl::onMessage(const mosquitto_message* mosqMessage)
     }
 
     if (mClientId.toHex() == mosqMessage->topic) {
-        if (mExpectedMessage) {
-            return onExpectedMessage(*mExpectedMessage, mosqMessage);
+        if (mExpectedResponse) {
+            return onExpectedResponse(*mExpectedResponse, mosqMessage);
         }
 
         return onGeneralMessage(mosqMessage);
@@ -419,13 +419,13 @@ void MqttMobilusGtwClientImpl::onGeneralMessage(const mosquitto_message* mosqMes
     mMessageQueue.push({ mosqMessage->topic, envelope->messageType, std::move(message) });
 }
 
-void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessage, const mosquitto_message* mosqMessage)
+void MqttMobilusGtwClientImpl::onExpectedResponse(ExpectedResponse& expectedResponse, const mosquitto_message* mosqMessage)
 {
-    auto& cond = expectedMessage.cond;
+    auto& cond = expectedResponse.cond;
     auto envelope = Envelope::deserialize(reinterpret_cast<uint8_t*>(mosqMessage->payload), static_cast<uint32_t>(mosqMessage->payloadlen));
 
     if (!envelope) {
-        expectedMessage.error = Error::BadMessage("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen));
+        expectedResponse.error = Error::InvalidMessage("Received invalid message of size: " + std::to_string(mosqMessage->payloadlen));
         cond.notify();
 
         return;
@@ -434,30 +434,30 @@ void MqttMobilusGtwClientImpl::onExpectedMessage(ExpectedMessage& expectedMessag
     mRawMessageCallback(*envelope);
 
     if (Envelope::ResponseStatus::InvalidSession == envelope->responseStatus) {
-        expectedMessage.error = Error::InvalidSession("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
+        expectedResponse.error = Error::InvalidSession("Session is invalid or expired, got status: " + std::to_string(envelope->responseStatus));
         cond.notify();
 
         return;
     }
 
     if (Envelope::ResponseStatus::Success != envelope->responseStatus) {
-        expectedMessage.error = Error::BadResponse("Bad response from mobilus: " + std::to_string(envelope->responseStatus));
+        expectedResponse.error = Error::BadResponse("Bad response from mobilus: " + std::to_string(envelope->responseStatus));
         cond.notify();
 
         return;
     }
 
-    if (envelope->messageType != expectedMessage.expectedMessageType) {
-        expectedMessage.error = Error::UnexpectedMessage("Expected to get message of code: " + std::to_string(expectedMessage.expectedMessageType) + " but got: " + std::to_string(envelope->messageType));
+    if (envelope->messageType != expectedResponse.messageType) {
+        expectedResponse.error = Error::UnexpectedResponse("Expected to get response of message type: " + std::to_string(expectedResponse.messageType) + ", but got: " + std::to_string(envelope->messageType));
         cond.notify();
 
         return;
     }
 
-    auto decryptedBody = kEncryptor.decrypt(envelope->messageBody, expectedMessage.key, crypto::timestamp2iv(envelope->timestamp));
+    auto decryptedBody = kEncryptor.decrypt(envelope->messageBody, expectedResponse.key, crypto::timestamp2iv(envelope->timestamp));
 
-    if (!expectedMessage.expectedMessage.ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
-        expectedMessage.error = Error::BadMessage("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
+    if (!expectedResponse.message.ParseFromArray(decryptedBody.data(), static_cast<int>(decryptedBody.size()))) {
+        expectedResponse.error = Error::InvalidMessage("Failed to parse proto of message type: " + std::to_string(envelope->messageType));
         cond.notify();
 
         return;
