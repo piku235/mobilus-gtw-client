@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 class Error final {
 public:

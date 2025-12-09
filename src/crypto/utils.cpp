@@ -3,7 +3,7 @@
 #include <arpa/inet.h>
 #include <openssl/evp.h>
 
-namespace jungi::mobilus_gtw_client::crypto {
+namespace jungi::mobgtw::crypto {
 
 bytes timestamp2iv(const time_t timestamp)
 {

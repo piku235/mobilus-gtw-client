@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 struct SessionInformation final {
     int64_t userId;

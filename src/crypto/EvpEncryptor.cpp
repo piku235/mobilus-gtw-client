@@ -1,6 +1,6 @@
 #include "EvpEncryptor.h"
 
-namespace jungi::mobilus_gtw_client::crypto {
+namespace jungi::mobgtw::crypto {
 
 EvpEncryptor::EvpEncryptor(const EVP_CIPHER* cipher)
     : mCipher(cipher)

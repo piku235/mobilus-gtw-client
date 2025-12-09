@@ -1,21 +1,21 @@
-#include "jungi/mobilus_gtw_client/ProtoUtils.h"
-#include "jungi/mobilus_gtw_client/EventNumber.h"
-#include "jungi/mobilus_gtw_client/MessageType.h"
-#include "jungi/mobilus_gtw_client/proto/CallEvents.pb.h"
-#include "jungi/mobilus_gtw_client/proto/CurrentStateRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/CurrentStateResponse.pb.h"
-#include "jungi/mobilus_gtw_client/proto/DeviceSettingsRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/DeviceSettingsResponse.pb.h"
-#include "jungi/mobilus_gtw_client/proto/DevicesListRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/DevicesListResponse.pb.h"
-#include "jungi/mobilus_gtw_client/proto/LoginRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/LoginResponse.pb.h"
-#include "jungi/mobilus_gtw_client/proto/NetworkSettingsRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/NetworkSettingsResponse.pb.h"
-#include "jungi/mobilus_gtw_client/proto/UpdateDeviceRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/UpdateDeviceResponse.pb.h"
+#include "jungi/mobgtw/ProtoUtils.h"
+#include "jungi/mobgtw/EventNumber.h"
+#include "jungi/mobgtw/MessageType.h"
+#include "jungi/mobgtw/proto/CallEvents.pb.h"
+#include "jungi/mobgtw/proto/CurrentStateRequest.pb.h"
+#include "jungi/mobgtw/proto/CurrentStateResponse.pb.h"
+#include "jungi/mobgtw/proto/DeviceSettingsRequest.pb.h"
+#include "jungi/mobgtw/proto/DeviceSettingsResponse.pb.h"
+#include "jungi/mobgtw/proto/DevicesListRequest.pb.h"
+#include "jungi/mobgtw/proto/DevicesListResponse.pb.h"
+#include "jungi/mobgtw/proto/LoginRequest.pb.h"
+#include "jungi/mobgtw/proto/LoginResponse.pb.h"
+#include "jungi/mobgtw/proto/NetworkSettingsRequest.pb.h"
+#include "jungi/mobgtw/proto/NetworkSettingsResponse.pb.h"
+#include "jungi/mobgtw/proto/UpdateDeviceRequest.pb.h"
+#include "jungi/mobgtw/proto/UpdateDeviceResponse.pb.h"
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 uint8_t ProtoUtils::messageTypeFor(const google::protobuf::MessageLite& message)
 {

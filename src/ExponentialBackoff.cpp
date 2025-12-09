@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 ExponentialBackoff::ExponentialBackoff(std::chrono::milliseconds baseDelay, std::chrono::milliseconds maxDelay, uint8_t factor)
     : mBaseDelay(baseDelay)

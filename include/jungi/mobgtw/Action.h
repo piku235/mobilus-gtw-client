@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 namespace Action {
     constexpr uint8_t Query = 1;

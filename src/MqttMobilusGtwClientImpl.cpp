@@ -3,19 +3,19 @@
 #include "crypto/EvpEncryptor.h"
 #include "crypto/hash.h"
 #include "crypto/utils.h"
-#include "jungi/mobilus_gtw_client/EventNumber.h"
-#include "jungi/mobilus_gtw_client/MessageType.h"
-#include "jungi/mobilus_gtw_client/Platform.h"
-#include "jungi/mobilus_gtw_client/ProtoUtils.h"
-#include "jungi/mobilus_gtw_client/proto/CallEvents.pb.h"
-#include "jungi/mobilus_gtw_client/proto/LoginRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/LoginResponse.pb.h"
+#include "jungi/mobgtw/EventNumber.h"
+#include "jungi/mobgtw/MessageType.h"
+#include "jungi/mobgtw/Platform.h"
+#include "jungi/mobgtw/ProtoUtils.h"
+#include "jungi/mobgtw/proto/CallEvents.pb.h"
+#include "jungi/mobgtw/proto/LoginRequest.pb.h"
+#include "jungi/mobgtw/proto/LoginResponse.pb.h"
 
 #include <cerrno>
 #include <ctime>
 #include <utility>
 
-using jungi::mobilus_gtw_client::crypto::EvpEncryptor;
+using jungi::mobgtw::crypto::EvpEncryptor;
 using std::chrono::steady_clock;
 
 static constexpr char kEventsTopic[] = "clients";
@@ -23,7 +23,7 @@ static constexpr char kRequestsTopic[] = "module";
 static constexpr int kKeepAliveIntervalSecs = 60;
 static const auto kEncryptor = EvpEncryptor::Aes256_cfb128();
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 MqttMobilusGtwClientImpl::MqttMobilusGtwClientImpl(MqttDsn dsn, MobilusCredentials mobilusCreds, std::chrono::milliseconds conenctTimeout, std::chrono::milliseconds responseTimeout, io::EventLoop& loop, logging::Logger& logger)
     : mClientId(ClientId::unique())

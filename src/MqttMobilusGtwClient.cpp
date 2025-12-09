@@ -1,7 +1,7 @@
-#include "jungi/mobilus_gtw_client/MqttMobilusGtwClient.h"
+#include "jungi/mobgtw/MqttMobilusGtwClient.h"
 #include "MqttMobilusGtwClientImpl.h"
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 MqttMobilusGtwClient::Builder& MqttMobilusGtwClient::Builder::dsn(MqttDsn dsn)
 {

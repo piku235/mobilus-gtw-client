@@ -1,6 +1,6 @@
-#include "jungi/mobilus_gtw_client/Envelope.h"
-#include "jungi/mobilus_gtw_client/MessageType.h"
-#include "jungi/mobilus_gtw_client/Platform.h"
+#include "jungi/mobgtw/Envelope.h"
+#include "jungi/mobgtw/MessageType.h"
+#include "jungi/mobgtw/Platform.h"
 
 #include <gtest/gtest.h>
 
@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <vector>
 
-using namespace jungi::mobilus_gtw_client;
+using namespace jungi::mobgtw;
 
 Envelope envelopeStub()
 {

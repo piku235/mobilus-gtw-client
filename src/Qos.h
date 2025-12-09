@@ -1,6 +1,6 @@
 #pragma once
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 namespace Qos {
     constexpr int AtMostOnce = 0;

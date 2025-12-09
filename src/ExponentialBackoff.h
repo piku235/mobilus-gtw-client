@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstdint>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 class ExponentialBackoff final {
 public:

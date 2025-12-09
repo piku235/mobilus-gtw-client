@@ -4,15 +4,15 @@
 
 #include <google/protobuf/message_lite.h>
 
+#include <cstdint>
 #include <future>
 #include <memory>
 #include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
-#include <cstdint>
 
-namespace jungi::mobilus_gtw_client::tests::mocks {
+namespace jungi::mobgtw::tests::mocks {
 
 class MockMqttMobilusActor final {
 public:

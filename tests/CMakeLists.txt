@@ -21,7 +21,7 @@ target_include_directories(tests
 target_link_libraries(tests
   PRIVATE
     mocks
-    mobilus_gtw_client
+    mobgtw
     GTest::gtest_main
 )
 

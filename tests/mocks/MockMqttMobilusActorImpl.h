@@ -1,9 +1,9 @@
 #pragma once
 
 #include "crypto/Encryptor.h"
-#include "jungi/mobilus_gtw_client/Envelope.h"
-#include "jungi/mobilus_gtw_client/MessageType.h"
-#include "jungi/mobilus_gtw_client/io/SocketEvents.h"
+#include "jungi/mobgtw/Envelope.h"
+#include "jungi/mobgtw/MessageType.h"
+#include "jungi/mobgtw/io/SocketEvents.h"
 
 #include <google/protobuf/message_lite.h>
 #include <mosquitto.h>
@@ -23,17 +23,17 @@ static constexpr char kPassword[] = "admin";
 static constexpr char kCommandTopic[] = "module";
 static constexpr char kEventsTopic[] = "clients";
 
-namespace jungi::mobilus_gtw_client::proto {
+namespace jungi::mobgtw::proto {
 
 class CallEvents;
 
 }
 
-namespace jungi::mobilus_gtw_client::tests::mocks {
+namespace jungi::mobgtw::tests::mocks {
 
-namespace proto = jungi::mobilus_gtw_client::proto;
-namespace io = jungi::mobilus_gtw_client::io;
-namespace crypto = jungi::mobilus_gtw_client::crypto;
+namespace proto = jungi::mobgtw::proto;
+namespace io = jungi::mobgtw::io;
+namespace crypto = jungi::mobgtw::crypto;
 
 class MockMqttMobilusActorImpl final {
 public:

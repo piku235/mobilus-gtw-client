@@ -3,7 +3,7 @@
 #include "bytes.h"
 #include <string>
 
-namespace jungi::mobilus_gtw_client::crypto {
+namespace jungi::mobgtw::crypto {
 
 bytes sha256(const std::string& text);
 

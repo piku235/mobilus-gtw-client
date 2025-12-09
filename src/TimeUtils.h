@@ -3,7 +3,7 @@
 #include <chrono>
 #include <sys/time.h>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 namespace TimeUtils {
 

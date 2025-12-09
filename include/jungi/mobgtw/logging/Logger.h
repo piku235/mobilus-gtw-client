@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace jungi::mobilus_gtw_client::logging {
+namespace jungi::mobgtw::logging {
 
 class Logger {
 public:

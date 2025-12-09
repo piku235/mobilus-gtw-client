@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 namespace MessageType {
     constexpr uint8_t Unknown = 0xFF;

@@ -5,11 +5,11 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-using namespace jungi::mobilus_gtw_client;
+using namespace jungi::mobgtw;
 
 static constexpr int kInvalidFd = -1;
 
-namespace jungi::mobilus_gtw_client::tests::mocks {
+namespace jungi::mobgtw::tests::mocks {
 
 MockMqttMobilusActor::MockMqttMobilusActor(std::string host, uint16_t port)
     : mHost(std::move(host))

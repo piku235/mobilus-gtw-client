@@ -3,7 +3,7 @@
 
 #include <sys/select.h>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 SelectCondition::SelectCondition(io::SocketEventHandler& socketEventHandler, int socketFd, std::chrono::milliseconds timeout)
     : mSocketEventHandler(socketEventHandler)

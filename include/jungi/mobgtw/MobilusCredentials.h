@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 struct MobilusCredentials final {
     std::string username;

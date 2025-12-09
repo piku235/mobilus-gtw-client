@@ -2,7 +2,7 @@
 
 #include "SocketEvents.h"
 
-namespace jungi::mobilus_gtw_client::io {
+namespace jungi::mobgtw::io {
 
 class SocketEventHandler {
 public:

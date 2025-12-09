@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 namespace EventNumber {
     constexpr uint8_t User = 1; // ADD, REMOVE, MODIFY

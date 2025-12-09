@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 enum class ErrorCode : uint8_t {
     InvalidSession = 1,

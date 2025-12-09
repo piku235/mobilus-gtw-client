@@ -1,8 +1,8 @@
-#include "jungi/mobilus_gtw_client/MqttDsn.h"
+#include "jungi/mobgtw/MqttDsn.h"
 
 #include <gtest/gtest.h>
 
-using jungi::mobilus_gtw_client::MqttDsn;
+using jungi::mobgtw::MqttDsn;
 
 TEST(MqttDsnTest, ParsesDsnString)
 {

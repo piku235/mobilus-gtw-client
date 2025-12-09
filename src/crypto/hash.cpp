@@ -3,7 +3,7 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
-namespace jungi::mobilus_gtw_client::crypto {
+namespace jungi::mobgtw::crypto {
 
 bytes sha256(const std::string& text)
 {

@@ -2,13 +2,13 @@
 #include "crypto/EvpEncryptor.h"
 #include "crypto/hash.h"
 #include "crypto/utils.h"
-#include "jungi/mobilus_gtw_client/EventNumber.h"
-#include "jungi/mobilus_gtw_client/MessageType.h"
-#include "jungi/mobilus_gtw_client/Platform.h"
-#include "jungi/mobilus_gtw_client/ProtoUtils.h"
-#include "jungi/mobilus_gtw_client/proto/CallEvents.pb.h"
-#include "jungi/mobilus_gtw_client/proto/LoginRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/LoginResponse.pb.h"
+#include "jungi/mobgtw/EventNumber.h"
+#include "jungi/mobgtw/MessageType.h"
+#include "jungi/mobgtw/Platform.h"
+#include "jungi/mobgtw/ProtoUtils.h"
+#include "jungi/mobgtw/proto/CallEvents.pb.h"
+#include "jungi/mobgtw/proto/LoginRequest.pb.h"
+#include "jungi/mobgtw/proto/LoginResponse.pb.h"
 
 #include <openssl/rand.h>
 
@@ -19,10 +19,10 @@
 #include <sstream>
 #include <string>
 
-using namespace jungi::mobilus_gtw_client::io;
+using namespace jungi::mobgtw::io;
 
-static const auto kHashedPassword = jungi::mobilus_gtw_client::crypto::sha256(kPassword);
-static const auto kEncryptor = jungi::mobilus_gtw_client::crypto::EvpEncryptor::Aes256_cfb128();
+static const auto kHashedPassword = jungi::mobgtw::crypto::sha256(kPassword);
+static const auto kEncryptor = jungi::mobgtw::crypto::EvpEncryptor::Aes256_cfb128();
 
 template <class TContainer>
 static std::string bin2hex(const TContainer& buf)
@@ -36,7 +36,7 @@ static std::string bin2hex(const TContainer& buf)
     return oss.str();
 }
 
-namespace jungi::mobilus_gtw_client::tests::mocks {
+namespace jungi::mobgtw::tests::mocks {
 
 MockMqttMobilusActorImpl::MockMqttMobilusActorImpl(std::string host, uint16_t port)
     : mHost(std::move(host))

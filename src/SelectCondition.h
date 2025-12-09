@@ -1,10 +1,10 @@
 #pragma once
 
-#include "jungi/mobilus_gtw_client/io/SocketEventHandler.h"
+#include "jungi/mobgtw/io/SocketEventHandler.h"
 
 #include <chrono>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 class SelectCondition final {
 public:

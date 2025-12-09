@@ -3,15 +3,15 @@
 #include "ClientId.h"
 #include "ExponentialBackoff.h"
 #include "SelectCondition.h"
-#include "jungi/mobilus_gtw_client/Envelope.h"
-#include "jungi/mobilus_gtw_client/MobilusCredentials.h"
-#include "jungi/mobilus_gtw_client/MqttDsn.h"
-#include "jungi/mobilus_gtw_client/MqttMobilusGtwClient.h"
-#include "jungi/mobilus_gtw_client/io/EventLoop.h"
-#include "jungi/mobilus_gtw_client/io/NullEventLoop.h"
-#include "jungi/mobilus_gtw_client/io/SocketEventHandler.h"
-#include "jungi/mobilus_gtw_client/logging/Logger.h"
-#include "jungi/mobilus_gtw_client/logging/NullLogger.h"
+#include "jungi/mobgtw/Envelope.h"
+#include "jungi/mobgtw/MobilusCredentials.h"
+#include "jungi/mobgtw/MqttDsn.h"
+#include "jungi/mobgtw/MqttMobilusGtwClient.h"
+#include "jungi/mobgtw/io/EventLoop.h"
+#include "jungi/mobgtw/io/NullEventLoop.h"
+#include "jungi/mobgtw/io/SocketEventHandler.h"
+#include "jungi/mobgtw/logging/Logger.h"
+#include "jungi/mobgtw/logging/NullLogger.h"
 
 #include <mosquitto.h>
 
@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 namespace proto {
     class CallEvents;

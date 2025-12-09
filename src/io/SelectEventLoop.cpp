@@ -1,11 +1,11 @@
-#include "jungi/mobilus_gtw_client/io/SelectEventLoop.h"
+#include "jungi/mobgtw/io/SelectEventLoop.h"
 #include "TimeUtils.h"
-#include "jungi/mobilus_gtw_client/io/SocketEvents.h"
+#include "jungi/mobgtw/io/SocketEvents.h"
 
 #include <algorithm>
 #include <sys/select.h>
 
-namespace jungi::mobilus_gtw_client::io {
+namespace jungi::mobgtw::io {
 
 void SelectEventLoop::runUntil(Clock::time_point time)
 {

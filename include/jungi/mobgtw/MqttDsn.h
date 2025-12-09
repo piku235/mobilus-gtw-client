@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 struct MqttDsn final {
     bool secure;

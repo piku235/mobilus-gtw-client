@@ -2,7 +2,7 @@
 
 #include "bytes.h"
 
-namespace jungi::mobilus_gtw_client::crypto {
+namespace jungi::mobgtw::crypto {
 
 class Encryptor {
 public:

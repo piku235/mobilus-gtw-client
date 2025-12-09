@@ -5,7 +5,7 @@
 
 #include <tuple>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 ClientId ClientId::unique()
 {

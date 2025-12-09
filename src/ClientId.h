@@ -1,10 +1,10 @@
 #pragma once
 
-#include "jungi/mobilus_gtw_client/Envelope.h"
+#include "jungi/mobgtw/Envelope.h"
 
 #include <string>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 class ClientId {
 public:

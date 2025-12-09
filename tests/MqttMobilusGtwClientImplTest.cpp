@@ -1,15 +1,15 @@
 #include "MqttMobilusGtwClientImpl.h"
-#include "jungi/mobilus_gtw_client/ErrorCode.h"
-#include "jungi/mobilus_gtw_client/EventNumber.h"
-#include "jungi/mobilus_gtw_client/MobilusCredentials.h"
-#include "jungi/mobilus_gtw_client/MqttDsn.h"
-#include "jungi/mobilus_gtw_client/Platform.h"
-#include "jungi/mobilus_gtw_client/SessionInformation.h"
-#include "jungi/mobilus_gtw_client/io/SelectEventLoop.h"
-#include "jungi/mobilus_gtw_client/proto/CallEvents.pb.h"
-#include "jungi/mobilus_gtw_client/proto/CurrentStateResponse.pb.h"
-#include "jungi/mobilus_gtw_client/proto/DevicesListRequest.pb.h"
-#include "jungi/mobilus_gtw_client/proto/DevicesListResponse.pb.h"
+#include "jungi/mobgtw/ErrorCode.h"
+#include "jungi/mobgtw/EventNumber.h"
+#include "jungi/mobgtw/MobilusCredentials.h"
+#include "jungi/mobgtw/MqttDsn.h"
+#include "jungi/mobgtw/Platform.h"
+#include "jungi/mobgtw/SessionInformation.h"
+#include "jungi/mobgtw/io/SelectEventLoop.h"
+#include "jungi/mobgtw/proto/CallEvents.pb.h"
+#include "jungi/mobgtw/proto/CurrentStateResponse.pb.h"
+#include "jungi/mobgtw/proto/DevicesListRequest.pb.h"
+#include "jungi/mobgtw/proto/DevicesListResponse.pb.h"
 #include "mocks/MockMqttMobilusActor.h"
 
 #include <gtest/gtest.h>
@@ -23,8 +23,8 @@
 #include <thread>
 #include <vector>
 
-using namespace jungi::mobilus_gtw_client;
-using jungi::mobilus_gtw_client::tests::mocks::MockMqttMobilusActor;
+using namespace jungi::mobgtw;
+using jungi::mobgtw::tests::mocks::MockMqttMobilusActor;
 
 namespace {
 

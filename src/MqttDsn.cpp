@@ -1,9 +1,9 @@
-#include "jungi/mobilus_gtw_client/MqttDsn.h"
+#include "jungi/mobgtw/MqttDsn.h"
 
 #include <regex>
 #include <unordered_map>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 std::optional<MqttDsn> MqttDsn::from(const std::string& dsn)
 {

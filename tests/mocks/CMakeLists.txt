@@ -14,5 +14,5 @@ target_include_directories(mocks
 target_link_libraries(mocks
   PRIVATE
     PkgConfig::MOSQUITTO
-    mobilus_gtw_client
+    mobgtw
 )

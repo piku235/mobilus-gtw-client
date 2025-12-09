@@ -1,9 +1,9 @@
-#include "jungi/mobilus_gtw_client/Envelope.h"
+#include "jungi/mobgtw/Envelope.h"
 
 #include <arpa/inet.h>
 #include <cstring>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 std::optional<Envelope> Envelope::deserialize(const uint8_t* payload, uint32_t size)
 {

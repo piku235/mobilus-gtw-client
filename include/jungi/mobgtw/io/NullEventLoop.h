@@ -2,7 +2,7 @@
 
 #include "EventLoop.h"
 
-namespace jungi::mobilus_gtw_client::io {
+namespace jungi::mobgtw::io {
 
 class NullEventLoop final : public EventLoop {
 public:

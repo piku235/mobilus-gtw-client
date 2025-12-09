@@ -5,7 +5,7 @@
 #include <optional>
 #include <vector>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 struct Envelope final {
     struct ResponseStatus {

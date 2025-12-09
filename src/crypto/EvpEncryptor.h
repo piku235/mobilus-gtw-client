@@ -4,7 +4,7 @@
 
 #include <openssl/evp.h>
 
-namespace jungi::mobilus_gtw_client::crypto {
+namespace jungi::mobgtw::crypto {
 
 class EvpEncryptor final : public Encryptor {
 public:

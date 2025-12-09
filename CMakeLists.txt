@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(mobilus_gtw_client VERSION 0.8.0)
+project(mobgtw VERSION 0.9.0)
 
 cmake_policy(SET CMP0135 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
@@ -47,7 +47,7 @@ target_compile_options(common_compiler_warnings
     -Wsign-conversion
 )
 
-add_library(mobilus_gtw_client
+add_library(mobgtw
   src/io/SelectEventLoop.cpp
   src/ExponentialBackoff.cpp
   src/ProtoUtils.cpp
@@ -59,9 +59,7 @@ add_library(mobilus_gtw_client
   src/MqttMobilusGtwClientImpl.cpp
 )
 
-set_target_properties(mobilus_gtw_client PROPERTIES OUTPUT_NAME "mobgtw")
-
-target_link_libraries(mobilus_gtw_client
+target_link_libraries(mobgtw
   PUBLIC
     expected
     protos
@@ -72,7 +70,7 @@ target_link_libraries(mobilus_gtw_client
     crypto
 )
 
-target_include_directories(mobilus_gtw_client
+target_include_directories(mobgtw
   PUBLIC
     include
   PRIVATE

@@ -2,7 +2,7 @@ syntax = "proto2";
 
 import "Device.proto";
 
-package jungi.mobilus_gtw_client.proto;
+package jungi.mobgtw.proto;
 option optimize_for = LITE_RUNTIME;
 
 message UpdateDeviceRequest {

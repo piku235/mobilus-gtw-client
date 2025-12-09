@@ -2,7 +2,7 @@
 
 #include "Logger.h"
 
-namespace jungi::mobilus_gtw_client::logging {
+namespace jungi::mobgtw::logging {
 
 class NullLogger final : public Logger {
 public:

@@ -19,7 +19,7 @@
 #include <memory>
 #include <optional>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 class MqttMobilusGtwClient {
 public:

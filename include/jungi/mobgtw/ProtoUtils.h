@@ -3,9 +3,9 @@
 #include <google/protobuf/message.h>
 #include <memory>
 
-#define PACKAGE "jungi.mobilus_gtw_client.proto."
+#define PACKAGE "jungi.mobgtw.proto."
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 namespace ProtoUtils {
 

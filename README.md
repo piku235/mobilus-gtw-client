@@ -1,6 +1,6 @@
 # 📙 C++ Client Library for Mobilus Cosmo GTW
 
-[![CI](https://github.com/piku235/mobilus-gtw-client/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/piku235/mobilus-gtw-client/actions/workflows/continuous-integration.yml)
+[![CI](https://github.com/piku235/mobgtw/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/piku235/mobgtw/actions/workflows/continuous-integration.yml)
 
 A lightweight, platform-agnostic C++ client library for interacting with the **Mobilus Cosmo GTW**.
 Designed to facilitate communication, control, and event subscription of Mobilus devices connected to the Cosmo GTW.
@@ -43,11 +43,11 @@ See the [mobcli repository](https://github.com/piku235/mobcli) for more details.
 ## Basic usage
 
 ```cpp
-#include <jungi/mobilus_gtw_client/MqttMobilusGtwClient.h>
-#include <jungi/mobilus_gtw_client/proto/DevicesListRequest.pb.h>
-#include <jungi/mobilus_gtw_client/proto/DevicesListResponse.pb.h>
+#include <jungi/mobgtw/MqttMobilusGtwClient.h>
+#include <jungi/mobgtw/proto/DevicesListRequest.pb.h>
+#include <jungi/mobgtw/proto/DevicesListResponse.pb.h>
 
-using namespace jungi::mobilus_gtw_client;
+using namespace jungi::mobgtw;
 
 int main() {
     auto client = MqttMobilusGtwClient::builder()

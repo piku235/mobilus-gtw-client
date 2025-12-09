@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace jungi::mobilus_gtw_client {
+namespace jungi::mobgtw {
 
 static constexpr uint8_t kMessageTypeAll = 0;
 

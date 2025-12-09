@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace jungi::mobilus_gtw_client::io {
+namespace jungi::mobgtw::io {
 
 class SocketEvents final {
 public:
