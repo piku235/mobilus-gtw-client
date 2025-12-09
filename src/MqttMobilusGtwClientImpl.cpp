@@ -8,8 +8,18 @@
 #include "jungi/mobgtw/Platform.h"
 #include "jungi/mobgtw/ProtoUtils.h"
 #include "jungi/mobgtw/proto/CallEvents.pb.h"
+#include "jungi/mobgtw/proto/CurrentStateRequest.pb.h"
+#include "jungi/mobgtw/proto/CurrentStateResponse.pb.h"
+#include "jungi/mobgtw/proto/DeviceSettingsRequest.pb.h"
+#include "jungi/mobgtw/proto/DeviceSettingsResponse.pb.h"
+#include "jungi/mobgtw/proto/DevicesListRequest.pb.h"
+#include "jungi/mobgtw/proto/DevicesListResponse.pb.h"
 #include "jungi/mobgtw/proto/LoginRequest.pb.h"
 #include "jungi/mobgtw/proto/LoginResponse.pb.h"
+#include "jungi/mobgtw/proto/NetworkSettingsRequest.pb.h"
+#include "jungi/mobgtw/proto/NetworkSettingsResponse.pb.h"
+#include "jungi/mobgtw/proto/UpdateDeviceRequest.pb.h"
+#include "jungi/mobgtw/proto/UpdateDeviceResponse.pb.h"
 
 #include <cerrno>
 #include <ctime>
@@ -147,13 +157,29 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::send(const google::prot
     return send(message, Qos::AtMostOnce);
 }
 
-MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const proto::CurrentStateRequest& request, proto::CurrentStateResponse& response)
 {
-    if (!mSessionInfo) {
-        return logAndReturn(Error::NoSession("No open session"));
-    }
+    return sendSessionRequest(request, response);
+}
 
-    return sendRequest(request, response, mSessionInfo->privateKey);
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const proto::DeviceSettingsRequest& request, proto::DeviceSettingsResponse& response)
+{
+    return sendSessionRequest(request, response);
+}
+
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const proto::DevicesListRequest& request, proto::DevicesListResponse& response)
+{
+    return sendSessionRequest(request, response);
+}
+
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const proto::NetworkSettingsRequest& request, proto::NetworkSettingsResponse& response)
+{
+    return sendSessionRequest(request, response);
+}
+
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const proto::UpdateDeviceRequest& request, proto::UpdateDeviceResponse& response)
+{
+    return sendSessionRequest(request, response);
 }
 
 io::SocketEvents MqttMobilusGtwClientImpl::socketEvents()
@@ -290,6 +316,15 @@ MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendRequest(const googl
     }
 
     return {};
+}
+
+MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::sendSessionRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response)
+{
+    if (!mSessionInfo) {
+        return logAndReturn(Error::NoSession("No open session"));
+    }
+
+    return sendRequest(request, response, mSessionInfo->privateKey);
 }
 
 MqttMobilusGtwClient::Result<> MqttMobilusGtwClientImpl::login()

@@ -21,6 +21,19 @@
 
 namespace jungi::mobgtw {
 
+namespace proto {
+    class CurrentStateRequest;
+    class CurrentStateResponse;
+    class DeviceSettingsRequest;
+    class DeviceSettingsResponse;
+    class DevicesListRequest;
+    class DevicesListResponse;
+    class NetworkSettingsRequest;
+    class NetworkSettingsResponse;
+    class UpdateDeviceRequest;
+    class UpdateDeviceResponse;
+}
+
 class MqttMobilusGtwClient {
 public:
     template <typename TOk = void>
@@ -62,7 +75,11 @@ public:
     virtual Result<> connect() = 0;
     virtual Result<> disconnect() = 0;
     virtual Result<> send(const google::protobuf::MessageLite& message) = 0;
-    virtual Result<> sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response) = 0;
+    virtual Result<> sendRequest(const proto::CurrentStateRequest& request, proto::CurrentStateResponse& response) = 0;
+    virtual Result<> sendRequest(const proto::DeviceSettingsRequest& request, proto::DeviceSettingsResponse& response) = 0;
+    virtual Result<> sendRequest(const proto::DevicesListRequest& request, proto::DevicesListResponse& response) = 0;
+    virtual Result<> sendRequest(const proto::NetworkSettingsRequest& request, proto::NetworkSettingsResponse& response) = 0;
+    virtual Result<> sendRequest(const proto::UpdateDeviceRequest& request, proto::UpdateDeviceResponse& response) = 0;
 
     virtual MessageBus& messageBus() = 0;
     virtual const std::optional<SessionInformation>& sessionInfo() const = 0;

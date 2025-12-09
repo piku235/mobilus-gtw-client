@@ -41,7 +41,11 @@ public:
     Result<> connect() override;
     Result<> disconnect() override;
     Result<> send(const google::protobuf::MessageLite& message) override;
-    Result<> sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response) override;
+    Result<> sendRequest(const proto::CurrentStateRequest& request, proto::CurrentStateResponse& response) override;
+    Result<> sendRequest(const proto::DeviceSettingsRequest& request, proto::DeviceSettingsResponse& response) override;
+    Result<> sendRequest(const proto::DevicesListRequest& request, proto::DevicesListResponse& response) override;
+    Result<> sendRequest(const proto::NetworkSettingsRequest& request, proto::NetworkSettingsResponse& response) override;
+    Result<> sendRequest(const proto::UpdateDeviceRequest& request, proto::UpdateDeviceResponse& response) override;
 
     MessageBus& messageBus() override { return mMessageBus; }
     const std::optional<SessionInformation>& sessionInfo() const override { return mSessionInfo; }
@@ -106,6 +110,7 @@ private:
     void reconnect();
     Result<> send(const google::protobuf::MessageLite& message, int qos);
     Result<> sendRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response, const std::vector<uint8_t>& key);
+    Result<> sendSessionRequest(const google::protobuf::MessageLite& request, google::protobuf::MessageLite& response);
     Result<> login();
     void onMessage(const mosquitto_message* mosqMessage);
     void onGeneralMessage(const mosquitto_message* mosqMessage);
