@@ -15,7 +15,6 @@ enum class ErrorCode {
     NoConnection,
     ConnectionTimeout,
     ConnectionRefused,
-    Unknown,
 };
 
 }
