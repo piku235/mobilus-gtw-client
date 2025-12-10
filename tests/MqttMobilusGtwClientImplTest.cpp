@@ -313,7 +313,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesMessage)
 
     mobilusActor.start();
 
-    client.messageBus().subscribe<proto::CallEvents>(MessageType::CallEvents, [&](const auto& callEvents) {
+    client.messageBus().subscribe<proto::CallEvents>([&](const auto& callEvents) {
         actualCallEvents.CopyFrom(callEvents);
         (void)client.disconnect();
     });
@@ -365,7 +365,7 @@ TEST(MqttMobilusGtwClientImplTest, SubscribesAllMessages)
         subscribedMessage->CheckTypeAndMergeFrom(message);
         subscribedMessages.push_back(std::move(subscribedMessage));
     });
-    client.messageBus().subscribe<proto::CallEvents>(MessageType::CallEvents, [&](const auto& message) {
+    client.messageBus().subscribe<proto::CallEvents>([&](const auto& message) {
         actualCallEvents.CopyFrom(message);
     });
 
@@ -392,7 +392,7 @@ TEST(MqttMobilusGtwClientImplTest, ExpectedResponseIsNotSubscribed)
     mobilusActor.start();
 
     bool subscribed = false;
-    client.messageBus().subscribe<proto::DevicesListResponse>(MessageType::DevicesListResponse, [&](const auto&) {
+    client.messageBus().subscribe<proto::DevicesListResponse>([&](const auto&) {
         subscribed = true;
     });
 
@@ -418,7 +418,7 @@ TEST(MqttMobilusGtwClientImplTest, SendsKeepAliveMessageOnExpiringSession)
     mobilusActor.start();
 
     bool received = false;
-    client.messageBus().subscribe<proto::DevicesListResponse>(MessageType::DevicesListResponse, [&](const auto&) {
+    client.messageBus().subscribe<proto::DevicesListResponse>([&](const auto&) {
         received = true;
         (void)client.disconnect();
     });

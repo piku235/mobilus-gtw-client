@@ -19,43 +19,43 @@ namespace jungi::mobgtw {
 
 uint8_t ProtoUtils::messageTypeFor(const google::protobuf::MessageLite& message)
 {
-    if (!message.GetTypeName().compare(PACKAGE "LoginRequest")) {
+    if (message.GetTypeName() == PACKAGE "LoginRequest") {
         return MessageType::LoginRequest;
     }
-    if (!message.GetTypeName().compare(PACKAGE "LoginResponse")) {
+    if (message.GetTypeName() == PACKAGE "LoginResponse") {
         return MessageType::LoginResponse;
     }
-    if (!message.GetTypeName().compare(PACKAGE "DevicesListRequest")) {
+    if (message.GetTypeName() == PACKAGE "DevicesListRequest") {
         return MessageType::DevicesListRequest;
     }
-    if (!message.GetTypeName().compare(PACKAGE "DevicesListResponse")) {
+    if (message.GetTypeName() == PACKAGE "DevicesListResponse") {
         return MessageType::DevicesListResponse;
     }
-    if (!message.GetTypeName().compare(PACKAGE "DeviceSettingsRequest")) {
+    if (message.GetTypeName() == PACKAGE "DeviceSettingsRequest") {
         return MessageType::DeviceSettingsRequest;
     }
-    if (!message.GetTypeName().compare(PACKAGE "DeviceSettingsResponse")) {
+    if (message.GetTypeName() == PACKAGE "DeviceSettingsResponse") {
         return MessageType::DeviceSettingsResponse;
     }
-    if (!message.GetTypeName().compare(PACKAGE "CallEvents")) {
+    if (message.GetTypeName() == PACKAGE "CallEvents") {
         return MessageType::CallEvents;
     }
-    if (!message.GetTypeName().compare(PACKAGE "UpdateDeviceRequest")) {
+    if (message.GetTypeName() == PACKAGE "UpdateDeviceRequest") {
         return MessageType::UpdateDeviceRequest;
     }
-    if (!message.GetTypeName().compare(PACKAGE "UpdateDeviceResponse")) {
+    if (message.GetTypeName() == PACKAGE "UpdateDeviceResponse") {
         return MessageType::UpdateDeviceResponse;
     }
-    if (!message.GetTypeName().compare(PACKAGE "CurrentStateRequest")) {
+    if (message.GetTypeName() == PACKAGE "CurrentStateRequest") {
         return MessageType::CurrentStateRequest;
     }
-    if (!message.GetTypeName().compare(PACKAGE "CurrentStateResponse")) {
+    if (message.GetTypeName() == PACKAGE "CurrentStateResponse") {
         return MessageType::CurrentStateResponse;
     }
-    if (!message.GetTypeName().compare(PACKAGE "NetworkSettingsRequest")) {
+    if (message.GetTypeName() == PACKAGE "NetworkSettingsRequest") {
         return MessageType::NetworkSettingsRequest;
     }
-    if (!message.GetTypeName().compare(PACKAGE "NetworkSettingsResponse")) {
+    if (message.GetTypeName() == PACKAGE "NetworkSettingsResponse") {
         return MessageType::NetworkSettingsResponse;
     }
 

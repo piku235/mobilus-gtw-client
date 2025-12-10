@@ -51,7 +51,7 @@ public:
     struct ReplyClientCommand final : public Command {
         std::unique_ptr<const google::protobuf::MessageLite> message;
 
-        ReplyClientCommand(std::unique_ptr<const google::protobuf::MessageLite> aMessage)
+        explicit ReplyClientCommand(std::unique_ptr<const google::protobuf::MessageLite> aMessage)
             : message(std::move(aMessage))
         {
         }
@@ -62,7 +62,7 @@ public:
     struct ShareMessageCommand final : public Command {
         std::unique_ptr<const google::protobuf::MessageLite> message;
 
-        ShareMessageCommand(std::unique_ptr<const google::protobuf::MessageLite> aMessage)
+        explicit ShareMessageCommand(std::unique_ptr<const google::protobuf::MessageLite> aMessage)
             : message(std::move(aMessage))
         {
         }
